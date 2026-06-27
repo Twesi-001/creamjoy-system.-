@@ -1,3 +1,6 @@
+
+
+
 services:
   - type: web
     name: creamjoy-backend
@@ -6,10 +9,10 @@ services:
     plan: free
     region: oregon
     branch: main
-    rootDir: ./  # ⬅️ Change this to the root
+    rootDir: backend
 
-    buildCommand: cd backend && pip install -r requirements.txt
-    startCommand: cd backend && gunicorn run:app
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn run:app
 
     envVars:
       - key: MYSQL_HOST
@@ -30,3 +33,5 @@ services:
     healthCheckPath: /health
 
     autoDeploy: true
+
+
