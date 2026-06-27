@@ -1,0 +1,109 @@
+.header {
+    background: var(--primary);
+    color: white;
+    padding: 0 20px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+}
+
+.header-logo {
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.header-center {
+    flex: 1;
+    text-align: center;
+}
+
+.header-date {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.header-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.user-role {
+    font-size: 0.7rem;
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.role-production { background: #28a745; }
+.role-delivery { background: #17a2b8; }
+.role-sales { background: #ffc107; color: #333; }
+.role-maintenance { background: #6c757d; }
+.role-supervisor { background: #dc3545; }
+
+.logout-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 5px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.logout-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+@media (max-width: 768px) {
+    .header {
+        flex-wrap: wrap;
+        height: auto;
+        padding: 10px 15px;
+        gap: 5px;
+    }
+    
+    .header-center {
+        order: 3;
+        flex: 0 0 100%;
+        text-align: center;
+    }
+    
+    .header-date {
+        font-size: 0.75rem;
+    }
+    
+    .header-right {
+        gap: 8px;
+    }
+    
+    .user-name {
+        font-size: 0.8rem;
+    }
+}
