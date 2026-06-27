@@ -1,20 +1,25 @@
+
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Header.css';
 
-interface HeaderProps {}
-
-const Header: React.FC<HeaderProps> = () => {
+const Header: React.FC = () => {
     const [userName, setUserName] = useState('John Doe');
     const [userRole, setUserRole] = useState('Manager');
     const [today, setToday] = useState('');
+    const navigate = useNavigate();
 
     useEffect(() => {
-        // Get user from localStorage or API
+        // Get user from localStorage
         const user = localStorage.getItem('user');
         if (user) {
-            const parsed = JSON.parse(user);
-            setUserName(parsed.name || 'John Doe');
-            setUserRole(parsed.role || 'Manager');
+            try {
+                const parsed = JSON.parse(user);
+                setUserName(parsed.name || 'John Doe');
+                setUserRole(parsed.role || 'Manager');
+            } catch (e) {
+                console.error('Error parsing user:', e);
+            }
         }
 
         const now = new Date();
@@ -27,9 +32,12 @@ const Header: React.FC<HeaderProps> = () => {
     }, []);
 
     const handleLogout = () => {
+        // Clear localStorage
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        window.location.href = '/login';
+        
+        // Navigate to login using React Router
+        navigate('/login');
     };
 
     return (
