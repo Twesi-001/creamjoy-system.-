@@ -9,7 +9,7 @@ import {
     Legend
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
-import { BatchAPI, OrderAPI, InventoryAPI, CreditAPI } from '../../api/api';
+import { BatchAPI,  InventoryAPI, CreditAPI } from '../../api/api';
 import MetricCard from './MetricCard';
 import './Dashboard.css';
 
