@@ -6,26 +6,27 @@ services:
     plan: free
     region: oregon
     branch: main
-    rootDir: backend
+    rootDir: ./  # ⬅️ Change this to the root
 
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn run:app
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && gunicorn run:app
 
     envVars:
-  - key: MYSQL_HOST
-    sync: false
-  - key: MYSQL_USER
-    sync: false
-  - key: MYSQL_PASSWORD
-    sync: false
-  - key: MYSQL_DB
-    sync: false
-  - key: JWT_SECRET_KEY
-    sync: false
-  - key: PYTHON_VERSION
-    value: 3.11.0
-  - key: POETRY_VERSION
-    value: ""  # This disables Poetry
+      - key: MYSQL_HOST
+        sync: false
+      - key: MYSQL_USER
+        sync: false
+      - key: MYSQL_PASSWORD
+        sync: false
+      - key: MYSQL_DB
+        sync: false
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: POETRY_VERSION
+        value: ""
+
     healthCheckPath: /health
 
     autoDeploy: true
