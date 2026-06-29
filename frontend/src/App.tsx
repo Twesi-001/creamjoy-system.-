@@ -22,6 +22,7 @@ import PrivateRoute from './components/Auth/PrivateRoute';
 import Layout from './components/Layout/Layout';
 import AdminDashboard from './components/Admin/AdminDashboard';
 import ChangePassword from './components/Auth/ChangePassword';
+import NotFoundPage from './components/NotFoundPage';
 
 const App: React.FC = () => {
     return (
@@ -135,6 +136,7 @@ const App: React.FC = () => {
                         </PrivateRoute>
                     } />
                     <Route path="*" element={<Navigate to="/" replace />} />
+                    <Route path="*" element={<NotFoundPage />} />
                 </Routes>
             </Router>
         </ErrorBoundary>

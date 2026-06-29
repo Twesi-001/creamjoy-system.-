@@ -24,7 +24,7 @@ const Login: React.FC = () => {
             window.dispatchEvent(new Event('user-updated'));
             navigate('/');
         } catch (err: any) {
-            // ✅ Professional error messages
+            // ✅ Professional error messages - stay on login page
             if (err.response?.status === 401) {
                 setError('❌ Invalid email or password. Please check your credentials and try again.');
             } else if (err.response?.status === 403) {
@@ -33,11 +33,14 @@ const Login: React.FC = () => {
                 setError('🔍 Account not found. Please check your email address or contact support.');
             } else if (err.response?.status === 500) {
                 setError('⚠️ We\'re experiencing technical difficulties. Please try again in a few minutes.');
-            } else if (err.code === 'ERR_NETWORK') {
+            } else if (err.code === 'ERR_NETWORK' || err.message?.includes('Network')) {
                 setError('🌐 Unable to connect to the server. Please check your internet connection.');
             } else {
                 setError('😕 Something went wrong. Please try again or contact support if the problem persists.');
             }
+            
+            // ✅ Make sure we stay on the login page
+            // The error state will be displayed without redirecting
         } finally {
             setLoading(false);
         }

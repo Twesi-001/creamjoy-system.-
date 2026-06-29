@@ -128,11 +128,17 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     (error: AxiosError) => {
-        if (error.response?.status === 401) {
+        // ✅ Don't redirect to login for auth endpoints
+        const isAuthEndpoint = error.config?.url?.includes('/auth/');
+        
+        // Only redirect if it's a 401 and NOT an auth endpoint
+        if (error.response?.status === 401 && !isAuthEndpoint) {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             window.location.href = '/login';
         }
+        
+        // ✅ For auth endpoints, just reject the promise so the component can handle it
         return Promise.reject(error);
     }
 );

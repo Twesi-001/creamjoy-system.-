@@ -1,0 +1,23 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+import './NotFoundPage.css';
+
+const NotFoundPage: React.FC = () => {
+    return (
+        <div className="not-found-container">
+            <div className="not-found-box">
+                <h1>404</h1>
+                <h2>Page Not Found</h2>
+                <p>The page you're looking for doesn't exist or has been moved.</p>
+                <Link to="/" className="not-found-btn">
+                    Go to Dashboard
+                </Link>
+                <Link to="/login" className="not-found-btn secondary">
+                    Go to Login
+                </Link>
+            </div>
+        </div>
+    );
+};
+
+export default NotFoundPage;
