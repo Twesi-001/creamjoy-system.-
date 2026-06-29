@@ -1,3 +1,4 @@
+
 from flask import Flask
 from flask_cors import CORS
 from app.config import Config
@@ -7,14 +8,31 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     
-    CORS(app)
+    # ✅ Explicit CORS configuration with all necessary settings
+    CORS(app, 
+         resources={
+             r"/api/*": {
+                 "origins": [
+                     "https://creamjoy-frontend.vercel.app",
+                     "https://creamjoy-system-in97.vercel.app",
+                     "http://localhost:3000",
+                     "http://localhost:5173",
+                     "https://creamjoy-system-in97-git-main-twesi-001-s-projects.vercel.app"
+                 ],
+                 "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+                 "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
+                 "expose_headers": ["Content-Type", "Authorization"],
+                 "supports_credentials": True,
+                 "max_age": 3600
+             }
+         })
+    
     mysql.init_app(app)
     
     # Register blueprints
     from app.routes import api_bp
     app.register_blueprint(api_bp)
     
-    # ✅ Add root route INSIDE the function where 'app' exists
     @app.route('/')
     def home():
         return {
