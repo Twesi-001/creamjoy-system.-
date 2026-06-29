@@ -1,29 +1,110 @@
-import axios from 'axios';
+import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-const api = axios.create({
+const api: AxiosInstance = axios.create({
     baseURL: API_URL,
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
-// Add token to every request
+// ============ TYPE DEFINITIONS ============
+interface User {
+    staff_id: number;
+    name: string;
+    email: string;
+    role: string;
+    phone?: string;
+    password_hash?: string;
+    status?: 'active' | 'suspended' | 'inactive';
+}
+
+interface LoginResponse {
+    token: string;
+    user: User;
+}
+
+interface ApiResponse<T = unknown> {
+    data: T;
+    message?: string;
+}
+
+interface BatchData {
+    batch_number: string;
+    batch_date: string;
+    supervisor_id?: number;
+    products?: Array<{ product_id: number; quantity: number }>;
+    notes?: string;
+}
+
+interface OrderData {
+    customer_id: number;
+    order_date: string;
+    delivery_date?: string;
+    payment_method: 'cash' | 'mobile_money' | 'credit';
+    order_lines?: Array<{ product_id: number; quantity: number }>;
+}
+
+interface RawMaterialData {
+    material_name: string;
+    unit: string;
+    cost_per_unit_ugx: number;
+    current_stock?: number;
+    minimum_stock: number;
+    supplier_id?: number | null;
+    last_restocked?: string;
+}
+
+interface SupplierData {
+    supplier_name: string;
+    contact_person?: string;
+    phone?: string;
+    email?: string;
+    location?: string;
+    notes?: string;
+}
+
+interface AdminUserData {
+    name: string;
+    email: string;
+    password?: string;
+    role: string;
+    phone?: string;
+    status?: 'active' | 'suspended' | 'inactive';
+}
+
+interface ExpenditureData {
+    category: string;
+    description?: string;
+    quantity: number;
+    unit: string;
+    amount_ugx: number;
+    paid_by?: number;
+    expenditure_date: string;
+    notes?: string;
+}
+
+interface StockUpdateData {
+    quantity: number;
+    action: 'add' | 'subtract';
+}
+
+// ============ API INTERCEPTORS ============
 api.interceptors.request.use(
-    (config) => {
+    (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
         const token = localStorage.getItem('token');
-        if (token) {
+        if (token && config.headers) {
             config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
     },
-    (error) => Promise.reject(error)
+    (error: AxiosError): Promise<AxiosError> => Promise.reject(error)
 );
 
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
+    (error: AxiosError) => {
         if (error.response?.status === 401) {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
@@ -37,95 +118,146 @@ export default api;
 
 // ============ AUTH API ============
 export const AuthAPI = {
-    login: (email: string, password: string) =>
+    login: (email: string, password: string): Promise<{ data: LoginResponse }> =>
         api.post('/auth/login', { email, password }),
-    register: (data: any) =>
+    register: (data: User): Promise<{ data: ApiResponse }> =>
         api.post('/auth/register', data),
-    me: () =>
+    me: (): Promise<{ data: User }> =>
         api.get('/auth/me'),
 };
 
 // ============ BATCH API ============
 export const BatchAPI = {
-    getAll: () => api.get('/batches'),
-    getOne: (id: number) => api.get(`/batches/${id}`),
-    create: (data: any) => api.post('/batches', data),
-    updateStatus: (id: number, status: string) =>
+    getAll: (): Promise<{ data: BatchData[] }> =>
+        api.get('/batches'),
+    getOne: (id: number): Promise<{ data: BatchData }> =>
+        api.get(`/batches/${id}`),
+    create: (data: BatchData): Promise<{ data: ApiResponse }> =>
+        api.post('/batches', data),
+    updateStatus: (id: number, status: string): Promise<{ data: ApiResponse }> =>
         api.put(`/batches/${id}/status`, { status }),
 };
 
 // ============ PRODUCT API ============
 export const ProductAPI = {
-    getAll: () => api.get('/products'),
-    getOne: (id: number) => api.get(`/products/${id}`),
+    getAll: (): Promise<{ data: unknown[] }> =>
+        api.get('/products'),
+    getOne: (id: number): Promise<{ data: unknown }> =>
+        api.get(`/products/${id}`),
 };
 
 // ============ ORDER API ============
 export const OrderAPI = {
-    getAll: () => api.get('/orders'),
-    getOne: (id: number) => api.get(`/orders/${id}`),
-    create: (data: any) => api.post('/orders', data),
-    updateStatus: (id: number, status: string) =>
+    getAll: (): Promise<{ data: OrderData[] }> =>
+        api.get('/orders'),
+    getOne: (id: number): Promise<{ data: OrderData }> =>
+        api.get(`/orders/${id}`),
+    create: (data: OrderData): Promise<{ data: ApiResponse }> =>
+        api.post('/orders', data),
+    updateStatus: (id: number, status: string): Promise<{ data: ApiResponse }> =>
         api.put(`/orders/${id}/status`, { status }),
 };
 
 // ============ STAFF API ============
 export const StaffAPI = {
-    getAll: () => api.get('/staff'),
-    getOne: (id: number) => api.get(`/staff/${id}`),
+    getAll: (): Promise<{ data: User[] }> =>
+        api.get('/staff'),
+    getOne: (id: number): Promise<{ data: User }> =>
+        api.get(`/staff/${id}`),
 };
 
 // ============ DELIVERY API ============
 export const DeliveryAPI = {
-    getAll: () => api.get('/deliveries'),
-    updateStatus: (id: number, status: string) =>
+    getAll: (): Promise<{ data: unknown[] }> =>
+        api.get('/deliveries'),
+    updateStatus: (id: number, status: string): Promise<{ data: ApiResponse }> =>
         api.put(`/deliveries/${id}/status`, { status }),
-    getAudit: () => api.get('/deliveries/audit'),
+    getAudit: (): Promise<{ data: unknown[] }> =>
+        api.get('/deliveries/audit'),
 };
 
 // ============ INVENTORY API ============
 export const InventoryAPI = {
-    getAll: () => api.get('/inventory'),
-    updateStock: (id: number, quantity: number, action: 'add' | 'subtract') =>
-        api.put(`/inventory/${id}`, { quantity, action }),
-    getLowStock: () => api.get('/inventory/low-stock'),
+    getAll: (): Promise<{ data: unknown[] }> =>
+        api.get('/inventory'),
+    updateStock: (id: number, quantity: number, action: 'add' | 'subtract'): Promise<{ data: ApiResponse }> =>
+        api.put(`/inventory/${id}`, { quantity, action } as StockUpdateData),
+    getLowStock: (): Promise<{ data: unknown[] }> =>
+        api.get('/inventory/low-stock'),
 };
 
 // ============ CUSTOMER API ============
 export const CustomerAPI = {
-    getAll: () => api.get('/customers'),
-    getOne: (id: number) => api.get(`/customers/${id}`),
+    getAll: (): Promise<{ data: unknown[] }> =>
+        api.get('/customers'),
+    getOne: (id: number): Promise<{ data: unknown }> =>
+        api.get(`/customers/${id}`),
 };
 
 // ============ EXPENDITURE API ============
 export const ExpenditureAPI = {
-    create: (data: any) => api.post('/expenditures', data),
-    getSummary: () => api.get('/expenditures/summary'),
+    create: (data: ExpenditureData): Promise<{ data: ApiResponse }> =>
+        api.post('/expenditures', data),
+    getSummary: (): Promise<{ data: unknown }> =>
+        api.get('/expenditures/summary'),
 };
 
 // ============ CREDIT API ============
 export const CreditAPI = {
-    getAll: () => api.get('/credit-accounts'),
-    getSummary: () => api.get('/credit-accounts/summary'),
+    getAll: (): Promise<{ data: unknown[] }> =>
+        api.get('/credit-accounts'),
+    getSummary: (): Promise<{ data: { total_outstanding: number; count: number } }> =>
+        api.get('/credit-accounts/summary'),
 };
 
 // ============ SUPPLIER API ============
 export const SupplierAPI = {
-    getAll: () => api.get('/suppliers'),
-    getOne: (id: number) => api.get(`/suppliers/${id}`),
-    create: (data: any) => api.post('/suppliers', data),
-    update: (id: number, data: any) => api.put(`/suppliers/${id}`, data),
-    delete: (id: number) => api.delete(`/suppliers/${id}`),
+    getAll: (): Promise<{ data: unknown[] }> =>
+        api.get('/suppliers'),
+    getOne: (id: number): Promise<{ data: unknown }> =>
+        api.get(`/suppliers/${id}`),
+    create: (data: SupplierData): Promise<{ data: ApiResponse }> =>
+        api.post('/suppliers', data),
+    update: (id: number, data: SupplierData): Promise<{ data: ApiResponse }> =>
+        api.put(`/suppliers/${id}`, data),
+    delete: (id: number): Promise<{ data: ApiResponse }> =>
+        api.delete(`/suppliers/${id}`),
 };
-// Add to src/api/api.ts
 
+// ============ RAW MATERIAL API ============
 export const RawMaterialAPI = {
-    getAll: () => api.get('/raw-materials'),
-    getOne: (id: number) => api.get(`/raw-materials/${id}`),
-    create: (data: any) => api.post('/raw-materials', data),
-    update: (id: number, data: any) => api.put(`/raw-materials/${id}`, data),
-    delete: (id: number) => api.delete(`/raw-materials/${id}`),
-    updateStock: (id: number, quantity: number, action: 'add' | 'subtract') =>
-        api.put(`/raw-materials/${id}/stock`, { quantity, action }),
-    getLowStock: () => api.get('/raw-materials/low-stock'),
+    getAll: (): Promise<{ data: unknown[] }> =>
+        api.get('/raw-materials'),
+    getOne: (id: number): Promise<{ data: unknown }> =>
+        api.get(`/raw-materials/${id}`),
+    create: (data: RawMaterialData): Promise<{ data: ApiResponse }> =>
+        api.post('/raw-materials', data),
+    update: (id: number, data: RawMaterialData): Promise<{ data: ApiResponse }> =>
+        api.put(`/raw-materials/${id}`, data),
+    delete: (id: number): Promise<{ data: ApiResponse }> =>
+        api.delete(`/raw-materials/${id}`),
+    updateStock: (id: number, quantity: number, action: 'add' | 'subtract'): Promise<{ data: ApiResponse }> =>
+        api.put(`/raw-materials/${id}/stock`, { quantity, action } as StockUpdateData),
+    getLowStock: (): Promise<{ data: unknown[] }> =>
+        api.get('/raw-materials/low-stock'),
+};
+
+// ============ ADMIN API ============
+export const AdminAPI = {
+    getUsers: (): Promise<{ data: User[] }> =>
+        api.get('/admin/users'),
+    getUser: (id: number): Promise<{ data: User }> =>
+        api.get(`/admin/users/${id}`),
+    createUser: (data: AdminUserData): Promise<{ data: ApiResponse }> =>
+        api.post('/admin/users', data),
+    updateUser: (id: number, data: AdminUserData): Promise<{ data: ApiResponse }> =>
+        api.put(`/admin/users/${id}`, data),
+    deleteUser: (id: number): Promise<{ data: ApiResponse }> =>
+        api.delete(`/admin/users/${id}`),
+    suspendUser: (id: number): Promise<{ data: ApiResponse }> =>
+        api.put(`/admin/users/${id}/suspend`),
+    activateUser: (id: number): Promise<{ data: ApiResponse }> =>
+        api.put(`/admin/users/${id}/activate`),
+    getStats: (): Promise<{ data: unknown }> =>
+        api.get('/admin/stats'),
 };
