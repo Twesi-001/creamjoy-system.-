@@ -10,8 +10,30 @@ def create_app():
     CORS(app)
     mysql.init_app(app)
     
+    # Register blueprints
     from app.routes import api_bp
     app.register_blueprint(api_bp)
+    
+    # ✅ Add root route INSIDE the function where 'app' exists
+    @app.route('/')
+    def home():
+        return {
+            'message': 'CreamJoy API is running!',
+            'status': 'ok',
+            'version': '1.0.0',
+            'endpoints': {
+                'health': '/health',
+                'login': '/api/auth/login',
+                'customers': '/api/customers',
+                'batches': '/api/batches',
+                'orders': '/api/orders',
+                'deliveries': '/api/deliveries',
+                'inventory': '/api/inventory',
+                'products': '/api/products',
+                'suppliers': '/api/suppliers',
+                'credit': '/api/credit-accounts'
+            }
+        }, 200
     
     @app.route('/health')
     def health():
@@ -19,24 +41,6 @@ def create_app():
             'status': 'ok',
             'system': 'CreamJoy API',
             'version': '1.0.0'
-        }
+        }, 200
     
     return app
-@app.route('/')
-def home():
-    return {
-        'message': 'CreamJoy API is running!',
-        'status': 'ok',
-        'endpoints': {
-            'health': '/health',
-            'login': '/api/auth/login',
-            'customers': '/api/customers',
-            'batches': '/api/batches',
-            'orders': '/api/orders',
-            'deliveries': '/api/deliveries',
-            'inventory': '/api/inventory',
-            'products': '/api/products',
-            'suppliers': '/api/suppliers',
-            'credit': '/api/credit-accounts'
-        }
-    }, 200
