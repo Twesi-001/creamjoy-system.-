@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { AdminAPI } from '../../api/api';
 import './AdminDashboard.css';
@@ -12,6 +11,7 @@ interface User {
     status: 'active' | 'suspended' | 'inactive';
     last_login: string;
     created_at: string;
+    password_hash?: string;
 }
 
 interface SystemStats {
@@ -52,7 +52,6 @@ interface StatsResponse {
     pending_orders: number;
 }
 
-// ✅ Define form data type with proper status union
 interface FormData {
     name: string;
     email: string;
@@ -126,7 +125,6 @@ const AdminDashboard: React.FC = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            // ✅ Ensure status is properly typed
             const userData = {
                 name: formData.name,
                 email: formData.email,
@@ -202,6 +200,26 @@ const AdminDashboard: React.FC = () => {
         } catch (err: unknown) {
             const apiError = err as ApiError;
             setError(apiError.response?.data?.error || 'Failed to update user status');
+        }
+    };
+
+    // ✅ Handle password reset
+    const handleResetPassword = async (userId: number, userName: string) => {
+        const newPassword = prompt(`Enter new password for ${userName} (min 6 characters):`);
+        if (!newPassword) return;
+        
+        if (newPassword.length < 6) {
+            alert('Password must be at least 6 characters');
+            return;
+        }
+        
+        try {
+            await AdminAPI.resetPassword(userId, newPassword);
+            alert(`✅ Password reset successfully for ${userName}!`);
+            await fetchData();
+        } catch (err: unknown) {
+            const apiError = err as ApiError;
+            alert(apiError.response?.data?.error || 'Failed to reset password');
         }
     };
 
@@ -426,6 +444,13 @@ const AdminDashboard: React.FC = () => {
                                                 title={user.status === 'suspended' ? 'Activate' : 'Suspend'}
                                             >
                                                 {user.status === 'suspended' ? '🔓' : '🔒'}
+                                            </button>
+                                            <button 
+                                                className="btn-sm btn-reset"
+                                                onClick={() => handleResetPassword(user.staff_id, user.name)}
+                                                title="Reset Password"
+                                            >
+                                                🔑
                                             </button>
                                             <button 
                                                 className="btn-sm btn-delete"

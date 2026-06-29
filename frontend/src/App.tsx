@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import ChangePassword from './components/Auth/ChangePassword';
 import './App.css';
 
 // Components
@@ -123,6 +124,13 @@ const App: React.FC = () => {
                     <PrivateRoute>
                         <Layout>
                             <AdminDashboard />
+                        </Layout>
+                    </PrivateRoute>
+                } />
+                <Route path="/change-password" element={
+                    <PrivateRoute>
+                        <Layout>
+                            <ChangePassword />
                         </Layout>
                     </PrivateRoute>
                 } />

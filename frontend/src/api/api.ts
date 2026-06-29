@@ -90,6 +90,29 @@ interface StockUpdateData {
     action: 'add' | 'subtract';
 }
 
+interface SystemStats {
+    users: number;
+    active_users: number;
+    suspended_users: number;
+    customers: number;
+    products: number;
+    batches: number;
+    orders: number;
+    raw_materials: number;
+    suppliers: number;
+    low_stock: number;
+    pending_orders: number;
+}
+
+interface PasswordStatus {
+    staff_id: number;
+    name: string;
+    email: string;
+    role: string;
+    password_status: 'Set' | 'Not Set';
+    last_password_change: string | null;
+}
+
 // ============ API INTERCEPTORS ============
 api.interceptors.request.use(
     (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
@@ -124,6 +147,9 @@ export const AuthAPI = {
         api.post('/auth/register', data),
     me: (): Promise<{ data: User }> =>
         api.get('/auth/me'),
+    // ✅ ADD CHANGE PASSWORD
+    changePassword: (data: { current_password: string; new_password: string; confirm_password: string }): Promise<{ data: ApiResponse }> =>
+        api.post('/auth/change-password', data),
 };
 
 // ============ BATCH API ============
@@ -258,6 +284,13 @@ export const AdminAPI = {
         api.put(`/admin/users/${id}/suspend`),
     activateUser: (id: number): Promise<{ data: ApiResponse }> =>
         api.put(`/admin/users/${id}/activate`),
-    getStats: (): Promise<{ data: unknown }> =>
+    getStats: (): Promise<{ data: SystemStats }> =>
         api.get('/admin/stats'),
+    // ✅ ADD PASSWORD MANAGEMENT
+    resetPassword: (userId: number, newPassword: string): Promise<{ data: ApiResponse }> =>
+        api.post(`/admin/users/${userId}/reset-password`, { new_password: newPassword }),
+    getPasswordStatus: (userId: number): Promise<{ data: PasswordStatus }> =>
+        api.get(`/admin/users/${userId}/password-status`),
+    getAllPasswordStatus: (): Promise<{ data: PasswordStatus[] }> =>
+        api.get('/admin/users/password-status'),
 };

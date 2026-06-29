@@ -15,5 +15,6 @@ from . import expenditures
 from . import credit_accounts
 from . import admin
 from . import test
+from . import password  
 
 print("✅ All routes registered!")

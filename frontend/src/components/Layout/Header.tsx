@@ -67,6 +67,9 @@ const Header: React.FC = () => {
                         {userRole}
                     </span>
                 </div>
+                <button className="change-password-btn" onClick={() => navigate('/change-password')}>
+                    🔑 Change Password
+                </button>
                 <button className="logout-btn" onClick={handleLogout}>
                     Logout
                 </button>
