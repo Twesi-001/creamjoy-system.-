@@ -22,3 +22,21 @@ def create_app():
         }
     
     return app
+@app.route('/')
+def home():
+    return {
+        'message': 'CreamJoy API is running!',
+        'status': 'ok',
+        'endpoints': {
+            'health': '/health',
+            'login': '/api/auth/login',
+            'customers': '/api/customers',
+            'batches': '/api/batches',
+            'orders': '/api/orders',
+            'deliveries': '/api/deliveries',
+            'inventory': '/api/inventory',
+            'products': '/api/products',
+            'suppliers': '/api/suppliers',
+            'credit': '/api/credit-accounts'
+        }
+    }, 200
