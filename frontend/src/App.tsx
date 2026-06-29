@@ -11,7 +11,7 @@ import OrderList from './components/Orders/OrderList';
 import OrderForm from './components/Orders/OrderForm';
 import DeliveryList from './components/Deliveries/DeliveryList';
 import InventoryList from './components/Inventory/InventoryList';
-import RawMaterialList from './components/Inventory/RawMaterialList';  // ✅ ADD THIS
+import RawMaterialList from './components/Inventory/RawMaterialList';
 import CustomerList from './components/Customers/CustomerList';
 import CreditList from './components/CreditAccounts/CreditList';
 import SupplierList from './components/Suppliers/SupplierList';
@@ -19,6 +19,8 @@ import ExpenditureForm from './components/expenditure/ExpenditureForm';
 import Login from './components/Auth/Login';
 import PrivateRoute from './components/Auth/PrivateRoute';
 import Layout from './components/Layout/Layout';
+// ✅ ADD THIS IMPORT
+import AdminDashboard from './components/Admin/AdminDashboard';
 
 const App: React.FC = () => {
     return (
@@ -81,7 +83,6 @@ const App: React.FC = () => {
                         </Layout>
                     </PrivateRoute>
                 } />
-                {/* ✅ ADD THIS ROUTE */}
                 <Route path="/raw-materials" element={
                     <PrivateRoute>
                         <Layout>
@@ -114,6 +115,14 @@ const App: React.FC = () => {
                     <PrivateRoute>
                         <Layout>
                             <ExpenditureForm />
+                        </Layout>
+                    </PrivateRoute>
+                } />
+                {/* ✅ ADD ADMIN ROUTE */}
+                <Route path="/admin" element={
+                    <PrivateRoute>
+                        <Layout>
+                            <AdminDashboard />
                         </Layout>
                     </PrivateRoute>
                 } />
