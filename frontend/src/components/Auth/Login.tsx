@@ -24,7 +24,20 @@ const Login: React.FC = () => {
             window.dispatchEvent(new Event('user-updated'));
             navigate('/');
         } catch (err: any) {
-            setError(err.response?.data?.error || 'Login failed. Please try again.');
+            // ✅ Professional error messages
+            if (err.response?.status === 401) {
+                setError('❌ Invalid email or password. Please check your credentials and try again.');
+            } else if (err.response?.status === 403) {
+                setError('🚫 Your account has been suspended. Please contact your administrator.');
+            } else if (err.response?.status === 404) {
+                setError('🔍 Account not found. Please check your email address or contact support.');
+            } else if (err.response?.status === 500) {
+                setError('⚠️ We\'re experiencing technical difficulties. Please try again in a few minutes.');
+            } else if (err.code === 'ERR_NETWORK') {
+                setError('🌐 Unable to connect to the server. Please check your internet connection.');
+            } else {
+                setError('😕 Something went wrong. Please try again or contact support if the problem persists.');
+            }
         } finally {
             setLoading(false);
         }
@@ -69,6 +82,10 @@ const Login: React.FC = () => {
                     <button type="submit" className="login-btn" disabled={loading}>
                         {loading ? 'Logging in...' : 'Login'}
                     </button>
+
+                    <div className="login-help">
+                        <p>Contact your administrator if you need assistance.</p>
+                    </div>
 
                     <p className="login-footer">
                         CreamJoy Yoghurt - Staff Portal

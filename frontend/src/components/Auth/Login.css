@@ -286,3 +286,59 @@
         padding: 8px 6px;
     }
 }
+/* ✅ Professional Error Messages */
+.login-error {
+    background: #FFF5F5;
+    color: #C53030;
+    padding: 14px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    border: 1px solid #FED7D7;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.login-error .error-icon {
+    font-size: 1.2rem;
+}
+
+/* ✅ Login Help Text */
+.login-help {
+    text-align: center;
+    margin-top: 12px;
+    padding: 10px;
+    background: #F7FAFC;
+    border-radius: 8px;
+    border: 1px solid #E2E8F0;
+}
+
+.login-help p {
+    color: #718096;
+    font-size: 0.8rem;
+    margin: 0;
+}
+
+.login-help a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.login-help a:hover {
+    text-decoration: underline;
+}
