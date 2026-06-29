@@ -8,10 +8,41 @@
     left: 0;
     padding: 20px 0;
     overflow-y: auto;
-    z-index: 999;
+    z-index: 1000;
     display: flex;
     flex-direction: column;
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+
+/* ✅ Mobile: Sidebar hidden by default, slides in */
+@media (max-width: 768px) {
+    .sidebar {
+        top: 55px;
+        width: 280px;
+        transform: translateX(-100%);
+        padding: 10px 0;
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
+    }
+
+    /* Overlay when sidebar is open */
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+    }
+
+    .sidebar-overlay.active {
+        display: block;
+    }
 }
 
 .sidebar-brand {
@@ -31,6 +62,17 @@
 .brand-name {
     font-size: 1.2rem;
     font-weight: 700;
+}
+
+@media (max-width: 768px) {
+    .sidebar-brand {
+        padding: 0 16px 15px;
+        margin-bottom: 10px;
+    }
+
+    .brand-name {
+        font-size: 1rem;
+    }
 }
 
 .sidebar-user {
@@ -75,25 +117,27 @@
     width: fit-content;
 }
 
-.role-supervisor {
-    background: #dc3545;
-    color: white;
+@media (max-width: 768px) {
+    .sidebar-user {
+        padding: 10px 14px;
+        margin: 0 10px 12px;
+    }
+
+    .user-avatar {
+        font-size: 1.5rem;
+    }
+
+    .user-name {
+        font-size: 0.8rem;
+    }
 }
 
-.role-production {
-    background: #28a745;
-    color: white;
-}
-
-.role-delivery {
-    background: #17a2b8;
-    color: white;
-}
-
-.role-sales {
-    background: #ffc107;
-    color: #333;
-}
+.role-supervisor { background: #dc3545; color: white; }
+.role-production { background: #28a745; color: white; }
+.role-delivery { background: #17a2b8; color: white; }
+.role-sales { background: #ffc107; color: #333; }
+.role-admin { background: #6f42c1; color: white; }
+.role-maintenance { background: #6c757d; color: white; }
 
 .sidebar-menu {
     list-style: none;
@@ -140,6 +184,27 @@
     font-weight: 500;
 }
 
+@media (max-width: 768px) {
+    .sidebar-item {
+        margin: 1px 8px;
+    }
+
+    .sidebar-link {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+        gap: 10px;
+    }
+
+    .link-icon {
+        font-size: 1rem;
+        width: 20px;
+    }
+
+    .link-label {
+        font-size: 0.8rem;
+    }
+}
+
 .sidebar-footer {
     padding: 15px;
     margin: 10px 12px 0;
@@ -152,6 +217,13 @@
     color: rgba(255, 255, 255, 0.4);
     text-transform: uppercase;
     letter-spacing: 1px;
+}
+
+@media (max-width: 768px) {
+    .sidebar-footer {
+        padding: 10px;
+        margin: 8px 10px 0;
+    }
 }
 
 .sidebar::-webkit-scrollbar {
@@ -169,51 +241,4 @@
 
 .sidebar::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3);
-}
-
-@media (max-width: 768px) {
-    .sidebar {
-        width: 100%;
-        height: auto;
-        position: fixed;
-        top: 50px;
-        left: 0;
-        padding: 5px 0;
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .sidebar-brand,
-    .sidebar-user,
-    .sidebar-footer {
-        display: none;
-    }
-    
-    .sidebar-menu {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 2px;
-        padding: 0 5px;
-    }
-    
-    .sidebar-item {
-        margin: 0;
-    }
-    
-    .sidebar-link {
-        padding: 6px 10px;
-        font-size: 0.75rem;
-        gap: 4px;
-    }
-    
-    .link-label {
-        display: none;
-    }
-    
-    .link-icon {
-        font-size: 1rem;
-    }
 }

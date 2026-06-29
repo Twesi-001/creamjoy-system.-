@@ -7,20 +7,24 @@ interface User {
     role: string;
 }
 
-const Header: React.FC = () => {
+interface HeaderProps {
+    onMenuToggle?: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
     const [userName, setUserName] = useState<string>('John Doe');
     const [userRole, setUserRole] = useState<string>('Manager');
     const [today, setToday] = useState<string>('');
+    const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth <= 768);
     const navigate = useNavigate();
     const isMounted = useRef<boolean>(true);
 
+    // ✅ Load data on mount
     useEffect(() => {
-        // ✅ Only run if component is mounted
-        if (!isMounted.current) return;
+        isMounted.current = true;
 
-        // Get user from localStorage
         const userStr = localStorage.getItem('user');
-        if (userStr) {
+        if (userStr && isMounted.current) {
             try {
                 const parsed: User = JSON.parse(userStr);
                 // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -31,18 +35,31 @@ const Header: React.FC = () => {
             }
         }
 
-        // Set date
         const now = new Date();
-        setToday(now.toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        }));
+        if (isMounted.current) {
+            setToday(now.toLocaleDateString('en-US', {
+                weekday: 'short',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            }));
+        }
 
-        // Cleanup
         return () => {
             isMounted.current = false;
+        };
+    }, []);
+
+    // ✅ Handle resize
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth <= 768);
+        };
+
+        window.addEventListener('resize', handleResize);
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
         };
     }, []);
 
@@ -52,24 +69,35 @@ const Header: React.FC = () => {
         navigate('/login');
     };
 
+    // ✅ Navigate to change password page
+    const handleChangePassword = (): void => {
+        navigate('/change-password');
+    };
+
     return (
         <header className="header">
             <div className="header-left">
+                {isMobile && (
+                    <button className="menu-toggle" onClick={onMenuToggle} aria-label="Toggle menu">
+                        ☰
+                    </button>
+                )}
                 <h1 className="header-logo">🥛 CreamJoy</h1>
             </div>
             <div className="header-center">
                 <span className="header-date">{today}</span>
             </div>
             <div className="header-right">
+                {/* ✅ Change Password Button */}
+                <button className="change-password-btn" onClick={handleChangePassword} title="Change Password">
+                    🔑
+                </button>
                 <div className="header-user">
                     <span className="user-name">{userName}</span>
                     <span className={`user-role role-${userRole.toLowerCase()}`}>
                         {userRole}
                     </span>
                 </div>
-                <button className="change-password-btn" onClick={() => navigate('/change-password')}>
-                    🔑 Change Password
-                </button>
                 <button className="logout-btn" onClick={handleLogout}>
                     Logout
                 </button>
