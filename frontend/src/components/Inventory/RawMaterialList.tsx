@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { RawMaterialAPI, SupplierAPI } from '../../api/api';
 import './RawMaterialList.css';
 
@@ -19,14 +19,24 @@ interface Supplier {
     supplier_name: string;
 }
 
+interface FormData {
+    material_name: string;
+    unit: string;
+    cost_per_unit_ugx: number;
+    current_stock: number;
+    minimum_stock: number;
+    supplier_id: number;
+    last_restocked: string;
+}
+
 const RawMaterialList: React.FC = () => {
     const [materials, setMaterials] = useState<RawMaterial[]>([]);
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [showForm, setShowForm] = useState(false);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string>('');
+    const [showForm, setShowForm] = useState<boolean>(false);
     const [editingMaterial, setEditingMaterial] = useState<RawMaterial | null>(null);
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         material_name: '',
         unit: '',
         cost_per_unit_ugx: 0,
@@ -36,11 +46,8 @@ const RawMaterialList: React.FC = () => {
         last_restocked: new Date().toISOString().split('T')[0]
     });
 
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    const fetchData = async () => {
+    // ✅ Define fetchData with useCallback
+    const fetchData = useCallback(async (): Promise<void> => {
         setLoading(true);
         setError('');
         try {
@@ -48,25 +55,42 @@ const RawMaterialList: React.FC = () => {
                 RawMaterialAPI.getAll(),
                 SupplierAPI.getAll()
             ]);
-            setMaterials(materialsRes.data || []);
-            setSuppliers(suppliersRes.data || []);
-        } catch (err: any) {
-            setError(err.response?.data?.error || 'Failed to fetch data');
+            setMaterials((materialsRes.data || []) as RawMaterial[]);
+            setSuppliers((suppliersRes.data || []) as Supplier[]);
+        } catch (err: unknown) {
+            const errorMessage = err && typeof err === 'object' && 'response' in err 
+                ? (err as { response: { data?: { error?: string } } }).response.data?.error 
+                : 'Failed to fetch data';
+            setError(errorMessage || 'Failed to fetch data');
             console.error('Error fetching data:', err);
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    // ✅ useEffect with cleanup
+    useEffect(() => {
+        let isMounted = true;
+        const loadData = async () => {
+            if (isMounted) {
+                await fetchData();
+            }
+        };
+        loadData();
+        return () => {
+            isMounted = false;
+        };
+    }, [fetchData]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const value = e.target.type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value;
-        setFormData({
-            ...formData,
+        setFormData((prev) => ({
+            ...prev,
             [e.target.name]: value
-        });
+        }));
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent): Promise<void> => {
         e.preventDefault();
         setLoading(true);
         try {
@@ -87,14 +111,17 @@ const RawMaterialList: React.FC = () => {
                 last_restocked: new Date().toISOString().split('T')[0]
             });
             await fetchData();
-        } catch (err: any) {
-            setError(err.response?.data?.error || 'Failed to save material');
+        } catch (err: unknown) {
+            const errorMessage = err && typeof err === 'object' && 'response' in err 
+                ? (err as { response: { data?: { error?: string } } }).response.data?.error 
+                : 'Failed to save material';
+            setError(errorMessage || 'Failed to save material');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleEdit = (material: RawMaterial) => {
+    const handleEdit = (material: RawMaterial): void => {
         setEditingMaterial(material);
         setFormData({
             material_name: material.material_name,
@@ -108,18 +135,20 @@ const RawMaterialList: React.FC = () => {
         setShowForm(true);
     };
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (id: number): Promise<void> => {
         if (!window.confirm('Are you sure you want to delete this material?')) return;
         try {
             await RawMaterialAPI.delete(id);
             await fetchData();
-        } catch (err: any) {
-            setError(err.response?.data?.error || 'Failed to delete material');
+        } catch (err: unknown) {
+            const errorMessage = err && typeof err === 'object' && 'response' in err 
+                ? (err as { response: { data?: { error?: string } } }).response.data?.error 
+                : 'Failed to delete material';
+            setError(errorMessage || 'Failed to delete material');
         }
     };
 
-    // ✅ Fixed: Only takes 2 parameters
-    const handleStockUpdate = async (id: number, action: 'add' | 'subtract') => {
+    const handleStockUpdate = async (id: number, action: 'add' | 'subtract'): Promise<void> => {
         const quantity = prompt(`Enter quantity to ${action}:`, '10');
         if (!quantity) return;
         const qty = parseFloat(quantity);
@@ -130,12 +159,15 @@ const RawMaterialList: React.FC = () => {
         try {
             await RawMaterialAPI.updateStock(id, qty, action);
             await fetchData();
-        } catch (err: any) {
-            setError(err.response?.data?.error || `Failed to ${action} stock`);
+        } catch (err: unknown) {
+            const errorMessage = err && typeof err === 'object' && 'response' in err 
+                ? (err as { response: { data?: { error?: string } } }).response.data?.error 
+                : `Failed to ${action} stock`;
+            setError(errorMessage || `Failed to ${action} stock`);
         }
     };
 
-    const handleCancel = () => {
+    const handleCancel = (): void => {
         setShowForm(false);
         setEditingMaterial(null);
         setFormData({
@@ -149,12 +181,12 @@ const RawMaterialList: React.FC = () => {
         });
     };
 
-    const getSupplierName = (supplierId: number) => {
+    const getSupplierName = (supplierId: number): string => {
         const supplier = suppliers.find(s => s.supplier_id === supplierId);
         return supplier?.supplier_name || 'N/A';
     };
 
-    const isLowStock = (material: RawMaterial) => {
+    const isLowStock = (material: RawMaterial): boolean => {
         return material.current_stock <= material.minimum_stock;
     };
 
@@ -311,7 +343,6 @@ const RawMaterialList: React.FC = () => {
                                             )}
                                         </td>
                                         <td>
-                                            {/* ✅ FIXED: Only passing 2 arguments */}
                                             <button 
                                                 className="btn-sm btn-add"
                                                 onClick={() => handleStockUpdate(material.material_id, 'add')}

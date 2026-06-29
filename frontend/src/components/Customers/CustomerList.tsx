@@ -2,39 +2,72 @@ import React, { useState, useEffect } from 'react';
 import { CustomerAPI } from '../../api/api';
 import './CustomerList.css';
 
+interface Customer {
+    customer_id: number;
+    name: string;
+    location: string | null;
+    phone: string | null;
+    customer_type: string;
+    notes?: string;
+}
+
 const CustomerList: React.FC = () => {
-    const [customers, setCustomers] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [customers, setCustomers] = useState<Customer[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string>('');
 
-    useEffect(() => {
-        fetchCustomers();
-    }, []);
-
-    const fetchCustomers = async () => {
+    const fetchCustomers = async (): Promise<void> => {
         setLoading(true);
         setError('');
         try {
             console.log('🔍 Fetching customers...');
             const response = await CustomerAPI.getAll();
-            console.log('📦 Response status:', response.status);
-            console.log('📦 Response data:', response.data);
-            setCustomers(response.data || []);
-        } catch (err: any) {
+            console.log('📦 Response:', response);
+            
+            let customerData: Customer[] = [];
+            if (response && typeof response === 'object') {
+                if ('data' in response && Array.isArray(response.data)) {
+                    customerData = response.data as Customer[];
+                } else if (Array.isArray(response)) {
+                    customerData = response as Customer[];
+                } else if (response.data && Array.isArray(response.data)) {
+                    customerData = response.data as Customer[];
+                }
+            }
+            
+            console.log('📊 Customers found:', customerData.length);
+            setCustomers(customerData);
+        } catch (err: unknown) {
             console.error('❌ Error:', err);
-            if (err.response) {
-                console.error('Response error:', err.response.data);
-                setError(`Server error: ${err.response.data?.error || err.response.status}`);
-            } else if (err.request) {
-                console.error('No response:', err.request);
-                setError('No response from server. Is the backend running?');
-            } else {
+            if (err && typeof err === 'object' && 'response' in err) {
+                const errorResponse = err as { response: { data?: { error?: string } } };
+                setError(errorResponse.response.data?.error || 'Server error');
+            } else if (err instanceof Error) {
                 setError(err.message || 'Failed to fetch customers');
+            } else {
+                setError('Failed to fetch customers');
             }
         } finally {
             setLoading(false);
         }
     };
+
+    // ✅ useEffect with proper cleanup
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadData = async () => {
+            if (isMounted) {
+                await fetchCustomers();
+            }
+        };
+
+        loadData();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     return (
         <div className="customer-list">

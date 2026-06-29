@@ -1,73 +1,111 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { OrderAPI, CustomerAPI, ProductAPI } from '../../api/api';
 import './OrderForm.css';
 
+interface Customer {
+    customer_id: number;
+    name: string;
+    location?: string;
+    phone?: string;
+    customer_type?: string;
+}
+
+interface Product {
+    product_id: number;
+    flavour_name: string;
+    size_name: string;
+    unit_price?: number;
+}
+
+interface OrderLine {
+    product_id: number;
+    quantity: number;
+}
+
+interface FormData {
+    customer_id: number;
+    order_date: string;
+    delivery_date: string;
+    payment_method: 'cash' | 'mobile_money' | 'credit';
+    order_lines: OrderLine[];
+}
+
 const OrderForm: React.FC = () => {
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(false);
-    const [customers, setCustomers] = useState<any[]>([]);
-    const [products, setProducts] = useState<any[]>([]);
-    const [formData, setFormData] = useState({
+    const [loading, setLoading] = useState<boolean>(false);
+    const [customers, setCustomers] = useState<Customer[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [formData, setFormData] = useState<FormData>({
         customer_id: 0,
         order_date: new Date().toISOString().split('T')[0],
         delivery_date: '',
         payment_method: 'cash',
-        order_lines: [] as { product_id: number; quantity: number }[]
+        order_lines: []
     });
 
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    const fetchData = async () => {
+    const fetchData = useCallback(async (): Promise<void> => {
         try {
             const [customersRes, productsRes] = await Promise.all([
                 CustomerAPI.getAll(),
                 ProductAPI.getAll()
             ]);
-            setCustomers(customersRes.data || []);
-            setProducts(productsRes.data || []);
+            setCustomers((customersRes.data || []) as Customer[]);
+            setProducts((productsRes.data || []) as Product[]);
         } catch (error) {
             console.error('Error fetching data:', error);
         }
+    }, []);
+
+    useEffect(() => {
+        let isMounted = true;
+        const loadData = async () => {
+            if (isMounted) {
+                await fetchData();
+            }
+        };
+        loadData();
+        return () => {
+            isMounted = false;
+        };
+    }, [fetchData]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>): void => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({
+            ...prev,
+            [name]: name === 'customer_id' ? parseInt(value) || 0 : value
+        }));
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value
-        });
-    };
-
-    const handleProductChange = (index: number, field: string, value: any) => {
+    const handleProductChange = (index: number, field: keyof OrderLine, value: string): void => {
         const updatedLines = [...formData.order_lines];
         updatedLines[index] = {
             ...updatedLines[index],
-            [field]: field === 'product_id' ? parseInt(value) : parseInt(value)
+            [field]: parseInt(value) || 0
         };
-        setFormData({
-            ...formData,
+        setFormData((prev) => ({
+            ...prev,
             order_lines: updatedLines
-        });
+        }));
     };
 
-    const addProductRow = () => {
-        setFormData({
-            ...formData,
-            order_lines: [...formData.order_lines, { product_id: 0, quantity: 0 }]
-        });
+    const addProductRow = (): void => {
+        setFormData((prev) => ({
+            ...prev,
+            order_lines: [...prev.order_lines, { product_id: 0, quantity: 0 }]
+        }));
     };
 
-    const removeProductRow = (index: number) => {
+    const removeProductRow = (index: number): void => {
         const updatedLines = formData.order_lines.filter((_, i) => i !== index);
-        setFormData({
-            ...formData,
+        setFormData((prev) => ({
+            ...prev,
             order_lines: updatedLines
-        });
+        }));
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent): Promise<void> => {
         e.preventDefault();
         setLoading(true);
 
@@ -85,14 +123,22 @@ const OrderForm: React.FC = () => {
                 return;
             }
 
-            await OrderAPI.create({
-                ...formData,
+            // ✅ Ensure payment_method is correctly typed
+            const orderData = {
+                customer_id: formData.customer_id,
+                order_date: formData.order_date,
+                delivery_date: formData.delivery_date,
+                payment_method: formData.payment_method,
                 order_lines: validLines
-            });
+            };
 
+            await OrderAPI.create(orderData);
             navigate('/orders');
-        } catch (error: any) {
-            alert(error.response?.data?.error || 'Error creating order');
+        } catch (error: unknown) {
+            const errorMessage = error && typeof error === 'object' && 'response' in error 
+                ? (error as { response: { data?: { error?: string } } }).response.data?.error 
+                : 'Error creating order';
+            alert(errorMessage || 'Error creating order');
         } finally {
             setLoading(false);
         }

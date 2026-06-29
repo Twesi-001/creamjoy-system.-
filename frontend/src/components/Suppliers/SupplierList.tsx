@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { SupplierAPI } from '../../api/api';
 import './SupplierList.css';
 
@@ -13,13 +13,22 @@ interface Supplier {
     created_at: string;
 }
 
+interface FormData {
+    supplier_name: string;
+    contact_person: string;
+    phone: string;
+    email: string;
+    location: string;
+    notes: string;
+}
+
 const SupplierList: React.FC = () => {
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [showForm, setShowForm] = useState(false);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string>('');
+    const [showForm, setShowForm] = useState<boolean>(false);
     const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         supplier_name: '',
         contact_person: '',
         phone: '',
@@ -28,32 +37,46 @@ const SupplierList: React.FC = () => {
         notes: ''
     });
 
-    useEffect(() => {
-        fetchSuppliers();
-    }, []);
-
-    const fetchSuppliers = async () => {
+    // ✅ Define fetchSuppliers with useCallback
+    const fetchSuppliers = useCallback(async (): Promise<void> => {
         setLoading(true);
         setError('');
         try {
             const response = await SupplierAPI.getAll();
-            setSuppliers(response.data || []);
-        } catch (err: any) {
-            setError(err.response?.data?.error || 'Failed to fetch suppliers');
+            setSuppliers((response.data || []) as Supplier[]);
+        } catch (err: unknown) {
+            const errorMessage = err && typeof err === 'object' && 'response' in err 
+                ? (err as { response: { data?: { error?: string } } }).response.data?.error 
+                : 'Failed to fetch suppliers';
+            setError(errorMessage || 'Failed to fetch suppliers');
             console.error('Error fetching suppliers:', err);
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        setFormData({
-            ...formData,
+    // ✅ useEffect with cleanup
+    useEffect(() => {
+        let isMounted = true;
+        const loadData = async () => {
+            if (isMounted) {
+                await fetchSuppliers();
+            }
+        };
+        loadData();
+        return () => {
+            isMounted = false;
+        };
+    }, [fetchSuppliers]);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+        setFormData((prev) => ({
+            ...prev,
             [e.target.name]: e.target.value
-        });
+        }));
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent): Promise<void> => {
         e.preventDefault();
         setLoading(true);
         try {
@@ -73,14 +96,17 @@ const SupplierList: React.FC = () => {
                 notes: ''
             });
             await fetchSuppliers();
-        } catch (err: any) {
-            setError(err.response?.data?.error || 'Failed to save supplier');
+        } catch (err: unknown) {
+            const errorMessage = err && typeof err === 'object' && 'response' in err 
+                ? (err as { response: { data?: { error?: string } } }).response.data?.error 
+                : 'Failed to save supplier';
+            setError(errorMessage || 'Failed to save supplier');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleEdit = (supplier: Supplier) => {
+    const handleEdit = (supplier: Supplier): void => {
         setEditingSupplier(supplier);
         setFormData({
             supplier_name: supplier.supplier_name,
@@ -93,17 +119,20 @@ const SupplierList: React.FC = () => {
         setShowForm(true);
     };
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (id: number): Promise<void> => {
         if (!window.confirm('Are you sure you want to delete this supplier?')) return;
         try {
             await SupplierAPI.delete(id);
             await fetchSuppliers();
-        } catch (err: any) {
-            setError(err.response?.data?.error || 'Failed to delete supplier');
+        } catch (err: unknown) {
+            const errorMessage = err && typeof err === 'object' && 'response' in err 
+                ? (err as { response: { data?: { error?: string } } }).response.data?.error 
+                : 'Failed to delete supplier';
+            setError(errorMessage || 'Failed to delete supplier');
         }
     };
 
-    const handleCancel = () => {
+    const handleCancel = (): void => {
         setShowForm(false);
         setEditingSupplier(null);
         setFormData({
