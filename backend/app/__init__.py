@@ -1,4 +1,3 @@
-
 from flask import Flask
 from flask_cors import CORS
 from app.config import Config
@@ -26,6 +25,15 @@ def create_app():
                  "max_age": 3600
              }
          })
+    
+    # ✅ Add manual CORS headers as fallback for all responses
+    @app.after_request
+    def after_request(response):
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        return response
     
     mysql.init_app(app)
     
