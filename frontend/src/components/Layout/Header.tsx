@@ -1,20 +1,29 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Header.css';
 
+interface User {
+    name: string;
+    role: string;
+}
+
 const Header: React.FC = () => {
-    const [userName, setUserName] = useState('John Doe');
-    const [userRole, setUserRole] = useState('Manager');
-    const [today, setToday] = useState('');
+    const [userName, setUserName] = useState<string>('John Doe');
+    const [userRole, setUserRole] = useState<string>('Manager');
+    const [today, setToday] = useState<string>('');
     const navigate = useNavigate();
+    const isMounted = useRef<boolean>(true);
 
     useEffect(() => {
+        // ✅ Only run if component is mounted
+        if (!isMounted.current) return;
+
         // Get user from localStorage
-        const user = localStorage.getItem('user');
-        if (user) {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
             try {
-                const parsed = JSON.parse(user);
+                const parsed: User = JSON.parse(userStr);
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setUserName(parsed.name || 'John Doe');
                 setUserRole(parsed.role || 'Manager');
             } catch (e) {
@@ -22,6 +31,7 @@ const Header: React.FC = () => {
             }
         }
 
+        // Set date
         const now = new Date();
         setToday(now.toLocaleDateString('en-US', {
             weekday: 'long',
@@ -29,14 +39,16 @@ const Header: React.FC = () => {
             month: 'long',
             day: 'numeric'
         }));
+
+        // Cleanup
+        return () => {
+            isMounted.current = false;
+        };
     }, []);
 
-    const handleLogout = () => {
-        // Clear localStorage
+    const handleLogout = (): void => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        
-        // Navigate to login using React Router
         navigate('/login');
     };
 
