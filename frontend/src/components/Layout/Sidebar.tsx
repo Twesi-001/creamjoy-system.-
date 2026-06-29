@@ -37,11 +37,12 @@ const Sidebar: React.FC = () => {
         { path: '/orders', icon: '🛒', label: 'Orders', roles: ['supervisor', 'delivery', 'sales'] },
         { path: '/deliveries', icon: '🚚', label: 'Deliveries', roles: ['supervisor', 'delivery'] },
         { path: '/inventory', icon: '📋', label: 'Inventory', roles: ['supervisor', 'production'] },
-        // ✅ ADD THIS MENU ITEM
         { path: '/raw-materials', icon: '📦', label: 'Raw Materials', roles: ['supervisor', 'production'] },
         { path: '/suppliers', icon: '🏢', label: 'Suppliers', roles: ['supervisor', 'production'] },
         { path: '/customers', icon: '👤', label: 'Customers', roles: ['supervisor', 'sales'] },
         { path: '/credit', icon: '💰', label: 'Credit Accounts', roles: ['supervisor', 'sales'] },
+        // ✅ ADD THIS LINE - Admin Panel link
+        { path: '/admin', icon: '⚙️', label: 'Admin Panel', roles: ['admin'] },
         { path: '/expenditures/new', icon: '💳', label: 'Expenditure', roles: ['supervisor'] },
     ];
 
