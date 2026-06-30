@@ -94,9 +94,8 @@ interface InventoryItem {
     material_name: string;
     current_stock: number;
     minimum_stock: number;
-    low_stock: boolean;
+    low_stock: boolean | number;  // ✅ Allow both boolean and number
 }
-
 interface Customer {
     customer_id: number;
 }
@@ -339,7 +338,20 @@ const Dashboard: React.FC = () => {
                 console.log(`📦 ${item.material_name}: low_stock = ${item.low_stock}, current_stock = ${item.current_stock}, minimum_stock = ${item.minimum_stock}`);
             });
 
-            const lowStock = inventory.filter((i: InventoryItem) => i.low_stock === true).length;
+            const lowStock = inventory.filter((i: InventoryItem) => {
+                // Handle both number (1) and boolean (true)
+                if (typeof i.low_stock === 'number') {
+                    return i.low_stock === 1;
+                }
+                return i.low_stock === true;
+            }).length;
+            console.log('⚠️ Low Stock Items (fixed):', inventory.filter((i: InventoryItem) => {
+                if (typeof i.low_stock === 'number') {
+                    return i.low_stock === 1;
+                }
+                return i.low_stock === true;
+            }));
+            console.log('⚠️ Low Stock Count (fixed):', lowStock);
 
             const totalRevenue = orders
                 .filter((o: Order) => o.payment_status === 'paid')
