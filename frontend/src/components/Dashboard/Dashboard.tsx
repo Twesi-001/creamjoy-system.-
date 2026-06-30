@@ -117,7 +117,6 @@ interface User {
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-
 const Dashboard: React.FC = () => {
     const [userRole, setUserRole] = useState<string>('delivery');
     const [userName, setUserName] = useState<string>('User');
@@ -153,163 +152,37 @@ const Dashboard: React.FC = () => {
         void fetchDashboardData();
     }, []);
 
-    const fetchDashboardData = async (): Promise<void> => {
-        setLoading(true);
-        try {
-            const [
-                batchesRes,
-                ordersRes,
-                deliveriesRes,
-                inventoryRes,
-                creditRes,
-                customersRes,
-                productsRes
-            ] = await Promise.all([
-                BatchAPI.getAll(),
-                OrderAPI.getAll(),
-                DeliveryAPI.getAll(),
-                InventoryAPI.getAll(),
-                CreditAPI.getSummary(),
-                CustomerAPI.getAll(),
-                ProductAPI.getAll()
-            ]);
-
-            const batches = (batchesRes as any)?.data || [];
-            const orders = (ordersRes as any)?.data || [];
-            const deliveries = (deliveriesRes as any)?.data || [];
-            const inventory = (inventoryRes as any)?.data || [];
-            const credit = (creditRes as any)?.data || { total_outstanding: 0, count: 0 };
-            const customers = (customersRes as any)?.data || [];
-            const products = (productsRes as any)?.data || [];
-
-            const today = new Date().toISOString().split('T')[0];
-            const todayBatches = batches.filter((b: Batch) => b.batch_date === today).length;
-            const pendingDeliveries = deliveries.filter((d: Delivery) => d.status === 'pending').length;
-            const lowStock = inventory.filter((i: InventoryItem) => i.low_stock).length;
-
-            const totalRevenue = orders
-                .filter((o: Order) => o.payment_status === 'paid')
-                .reduce((sum: number, o: Order) => {
-                    const amount = typeof o.total_amount === 'string'
-                        ? parseFloat(o.total_amount)
-                        : Number(o.total_amount || 0);
-                    return sum + (isNaN(amount) ? 0 : amount);
-                }, 0);
-
-            const creditSummary = credit as CreditSummary;
-
-            setMetrics({
-                todayBatches,
-                pendingDeliveries,
-                lowStock,
-                creditOutstanding: Number(creditSummary.total_outstanding || 0),
-                totalOrders: orders.length,
-                totalCustomers: customers.length,
-                totalProducts: products.length,
-                totalRevenue
-            });
-
-            setRecentBatches(batches.slice(0, 5));
-            setRecentOrders(orders.slice(0, 5));
-            setLowStockItems(inventory.filter((i: InventoryItem) => i.low_stock).slice(0, 5));
-
-            // Production Chart (Last 7 days batches)
-            const last7Days = getLast7Days();
-            const dailyBatches = last7Days.map((date: string) => ({
-                date,
-                // ✅ FIX: Convert batch dates to YYYY-MM-DD for comparison
-                count: batches.filter((b: Batch) => {
-                    try {
-                        const batchDate = new Date(b.batch_date);
-                        const formattedDate = batchDate.toISOString().split('T')[0];
-                        return formattedDate === date;
-                    } catch (e) {
-                        return false;
-                    }
-                }).length
-            }));
-
-            // ✅ Debug: Log the comparison
-            console.log('📊 Daily Batches (fixed):', dailyBatches);
-            console.log('📅 Last 7 Days (YYYY-MM-DD):', last7Days);
-
-            setChartData({
-                labels: dailyBatches.map((d) => d.date),
-                datasets: [
-                    {
-                        label: 'Batches Produced',
-                        data: dailyBatches.map((d) => d.count),
-                        backgroundColor: '#1D9E75',
-                    }
-                ]
-            });
-
-            // ✅ Detailed debug logs
-            console.log('🔍 PRODUCTION CHART DEBUG:');
-            console.log('📅 Last 7 Days:', last7Days);
-            console.log('📊 Daily Batches:', dailyBatches);
-            console.log('📦 Total Batches:', batches.length);
-            console.log('📋 All Batch Dates:', batches.map((b: Batch) => b.batch_date));
-
-
-            // Check if any batches match the last 7 days
-            const matchingBatches = batches.filter((b: Batch) => {
-                const match = last7Days.includes(b.batch_date);
-                if (match) console.log(`✅ Batch ${b.batch_number} on ${b.batch_date} matches!`);
-                return match;
-            });
-            console.log('✅ Matching Batches:', matchingBatches.length);
-
-            setChartData({
-                labels: dailyBatches.map((d: { date: string; count: number }) => d.date),
-                datasets: [
-                    {
-                        label: 'Batches Produced',
-                        data: dailyBatches.map((d: { date: string; count: number }) => d.count),
-                        backgroundColor: '#1D9E75',
-                    }
-                ]
-            });
-
-            generateRoleBasedCharts(batches, orders, deliveries, customers, products);
-
-            // Revenue chart - last 7 days
-            const dailyRevenue = last7Days.map((date: string) => {
-                const dayOrders = orders.filter((o: Order) => {
-                    const orderDate = new Date(o.order_date).toISOString().split('T')[0];
-                    return orderDate === date && o.payment_status === 'paid';
-                });
-
-                const total = dayOrders.reduce((sum: number, o: Order) => {
-                    const amount = typeof o.total_amount === 'string'
-                        ? parseFloat(o.total_amount)
-                        : Number(o.total_amount || 0);
-                    return sum + (isNaN(amount) ? 0 : amount);
-                }, 0);
-
-                return { date, total };
-            });
-
-            setRevenueChartData({
-                labels: dailyRevenue.map((d) => d.date),
-                datasets: [
-                    {
-                        label: 'Daily Revenue (UGX)',
-                        data: dailyRevenue.map((d) => d.total),
-                        backgroundColor: 'rgba(29, 158, 117, 0.6)',
-                        borderColor: '#1D9E75',
-                        borderWidth: 2,
-                        fill: false,
-                        tension: 0.4,
-                    }
-                ]
-            });
-
-        } catch (error) {
-            console.error('Error fetching dashboard data:', error);
-        } finally {
-            setLoading(false);
+    // ✅ Helper functions - defined at component level
+    const getLast7Days = (): string[] => {
+        const dates: string[] = [];
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            dates.push(d.toISOString().split('T')[0]);
         }
+        return dates;
+    };
+
+    const getStatusBadgeClass = (status: string): string => {
+        const statusMap: Record<string, string> = {
+            completed: 'badge-success',
+            in_progress: 'badge-warning',
+            pending: 'badge-secondary',
+            delivered: 'badge-success',
+            dispatched: 'badge-info',
+        };
+        return statusMap[status] || 'badge-secondary';
+    };
+
+    const getWelcomeMessage = (): string => {
+        const messages: Record<string, string> = {
+            admin: 'You have full access to all system data.',
+            supervisor: 'You can view production and delivery overview.',
+            production: 'Focus on your production batches.',
+            delivery: 'Track your deliveries efficiently.',
+            sales: 'Manage your orders and customers.'
+        };
+        return messages[userRole] || 'Welcome to your dashboard.';
     };
 
     const generateRoleBasedCharts = (
@@ -407,40 +280,151 @@ const Dashboard: React.FC = () => {
         });
     };
 
-    const getLast7Days = (): string[] => {
-        const dates: string[] = [];
-        for (let i = 6; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            dates.push(d.toISOString().split('T')[0]);
-        }
-        return dates;
-    };
-
-    const getStatusBadgeClass = (status: string): string => {
-        const statusMap: Record<string, string> = {
-            completed: 'badge-success',
-            in_progress: 'badge-warning',
-            pending: 'badge-secondary',
-            delivered: 'badge-success',
-            dispatched: 'badge-info',
-        };
-        return statusMap[status] || 'badge-secondary';
-    };
-
-    const getWelcomeMessage = (): string => {
-        const messages: Record<string, string> = {
-            admin: 'You have full access to all system data.',
-            supervisor: 'You can view production and delivery overview.',
-            production: 'Focus on your production batches.',
-            delivery: 'Track your deliveries efficiently.',
-            sales: 'Manage your orders and customers.'
-        };
-        return messages[userRole] || 'Welcome to your dashboard.';
-    };
-
     const showProductionChart = ['admin', 'supervisor', 'production'].includes(userRole);
     const showRevenueChart = ['admin', 'supervisor', 'sales'].includes(userRole);
+
+    const fetchDashboardData = async (): Promise<void> => {
+        setLoading(true);
+        try {
+            const [
+                batchesRes,
+                ordersRes,
+                deliveriesRes,
+                inventoryRes,
+                creditRes,
+                customersRes,
+                productsRes
+            ] = await Promise.all([
+                BatchAPI.getAll(),
+                OrderAPI.getAll(),
+                DeliveryAPI.getAll(),
+                InventoryAPI.getAll(),
+                CreditAPI.getSummary(),
+                CustomerAPI.getAll(),
+                ProductAPI.getAll()
+            ]);
+
+            const batches = (batchesRes as any)?.data || [];
+            const orders = (ordersRes as any)?.data || [];
+            const deliveries = (deliveriesRes as any)?.data || [];
+            const inventory = (inventoryRes as any)?.data || [];
+            const credit = (creditRes as any)?.data || { total_outstanding: 0, count: 0 };
+            const customers = (customersRes as any)?.data || [];
+            const products = (productsRes as any)?.data || [];
+
+            const today = new Date().toISOString().split('T')[0];
+
+            // ✅ Calculate metrics
+            const todayBatches = batches.filter((b: Batch) => {
+                const batchDate = new Date(b.batch_date).toISOString().split('T')[0];
+                return batchDate === today;
+            }).length;
+
+            const pendingDeliveries = deliveries.filter((d: Delivery) => d.status === 'pending').length;
+
+            const lowStock = inventory.filter((i: InventoryItem) => i.low_stock === true).length;
+
+            const totalRevenue = orders
+                .filter((o: Order) => o.payment_status === 'paid')
+                .reduce((sum: number, o: Order) => {
+                    const amount = typeof o.total_amount === 'string'
+                        ? parseFloat(o.total_amount)
+                        : Number(o.total_amount || 0);
+                    return sum + (isNaN(amount) ? 0 : amount);
+                }, 0);
+
+            const creditSummary = credit as CreditSummary;
+
+            // ✅ Debug logs
+            console.log('🔍 DASHBOARD DATA:');
+            console.log('📅 Today:', today);
+            console.log('🏭 Today\'s Batches:', todayBatches);
+            console.log('🚚 Pending Deliveries:', pendingDeliveries);
+            console.log('⚠️ Low Stock:', lowStock);
+
+            setMetrics({
+                todayBatches,
+                pendingDeliveries,
+                lowStock,
+                creditOutstanding: Number(creditSummary.total_outstanding || 0),
+                totalOrders: orders.length,
+                totalCustomers: customers.length,
+                totalProducts: products.length,
+                totalRevenue
+            });
+
+            setRecentBatches(batches.slice(0, 5));
+            setRecentOrders(orders.slice(0, 5));
+            setLowStockItems(inventory.filter((i: InventoryItem) => i.low_stock).slice(0, 5));
+
+            // Production Chart (Last 7 days batches)
+            const last7Days = getLast7Days();
+            const dailyBatches = last7Days.map((date: string) => ({
+                date,
+                count: batches.filter((b: Batch) => {
+                    try {
+                        const batchDate = new Date(b.batch_date);
+                        const formattedDate = batchDate.toISOString().split('T')[0];
+                        return formattedDate === date;
+                    } catch (e) {
+                        return false;
+                    }
+                }).length
+            }));
+
+            console.log('📊 Daily Batches:', dailyBatches);
+
+            setChartData({
+                labels: dailyBatches.map((d) => d.date),
+                datasets: [
+                    {
+                        label: 'Batches Produced',
+                        data: dailyBatches.map((d) => d.count),
+                        backgroundColor: '#1D9E75',
+                    }
+                ]
+            });
+
+            generateRoleBasedCharts(batches, orders, deliveries, customers, products);
+
+            // Revenue chart - last 7 days
+            const dailyRevenue = last7Days.map((date: string) => {
+                const dayOrders = orders.filter((o: Order) => {
+                    const orderDate = new Date(o.order_date).toISOString().split('T')[0];
+                    return orderDate === date && o.payment_status === 'paid';
+                });
+
+                const total = dayOrders.reduce((sum: number, o: Order) => {
+                    const amount = typeof o.total_amount === 'string'
+                        ? parseFloat(o.total_amount)
+                        : Number(o.total_amount || 0);
+                    return sum + (isNaN(amount) ? 0 : amount);
+                }, 0);
+
+                return { date, total };
+            });
+
+            setRevenueChartData({
+                labels: dailyRevenue.map((d) => d.date),
+                datasets: [
+                    {
+                        label: 'Daily Revenue (UGX)',
+                        data: dailyRevenue.map((d) => d.total),
+                        backgroundColor: 'rgba(29, 158, 117, 0.6)',
+                        borderColor: '#1D9E75',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.4,
+                    }
+                ]
+            });
+
+        } catch (error) {
+            console.error('Error fetching dashboard data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="dashboard">
