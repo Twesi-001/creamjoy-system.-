@@ -90,37 +90,46 @@ const ProductList: React.FC = () => {
         }));
     };
 
-    const handleSubmit = async (e: React.FormEvent): Promise<void> => {
-        e.preventDefault();
-        setLoading(true);
-        setError('');
-        try {
-            if (editingProduct) {
-                await ProductAPI.update(editingProduct.product_id, {
-                    unit_price: formData.unit_price
-                });
-            } else {
-                await ProductAPI.create(formData);
-            }
-            setShowForm(false);
-            setEditingProduct(null);
-            setFormData({
-                flavour_id: 0,
-                size_id: 0,
-                unit_price: 0
-            });
-            // Refetch data
-            const [productsRes] = await Promise.all([
-                ProductAPI.getAll()
-            ]);
-            setProducts((productsRes.data || []) as Product[]);
-        } catch (err: unknown) {
-            const apiError = err as ApiError;
-            setError(apiError.response?.data?.error || 'Failed to save product');
-        } finally {
+   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+        // ✅ Validate
+        if (!formData.flavour_id || !formData.size_id) {
+            setError('Please select both flavour and size');
             setLoading(false);
+            return;
         }
-    };
+        
+        if (formData.unit_price < 0) {
+            setError('Price cannot be negative');
+            setLoading(false);
+            return;
+        }
+
+        console.log('📦 Sending product data:', formData);
+        
+        if (editingProduct) {
+            await ProductAPI.update(editingProduct.product_id, {
+                unit_price: formData.unit_price
+            });
+        } else {
+            await ProductAPI.create({
+                flavour_id: Number(formData.flavour_id),
+                size_id: Number(formData.size_id),
+                unit_price: Number(formData.unit_price)
+            });
+        }
+        // ... rest of the code
+    } catch (err: unknown) {
+        const apiError = err as ApiError;
+        console.error('❌ Error:', apiError.response?.data);
+        setError(apiError.response?.data?.error || 'Failed to save product');
+    } finally {
+        setLoading(false);
+    }
+};
 
     const handleEdit = (product: Product): void => {
         setEditingProduct(product);
