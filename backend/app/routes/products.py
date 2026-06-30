@@ -8,7 +8,6 @@ import traceback
 @token_required
 def get_products():
     try:
-        # ✅ Use unit_price_ugx (correct column name)
         products = execute_query("""
             SELECT 
                 p.product_id,
@@ -37,14 +36,24 @@ def get_products():
 def create_product():
     try:
         data = request.get_json()
-        print(f"📦 Creating product: {data}")
+        print(f"📦 Received product data: {data}")
         
+        # Get fields
         flavour_id = data.get('flavour_id')
         size_id = data.get('size_id')
         unit_price = data.get('unit_price', 0)
         
+        # Validate
         if not flavour_id or not size_id:
             return jsonify({'error': 'Flavour and size are required'}), 400
+        
+        # Convert to int
+        try:
+            flavour_id = int(flavour_id)
+            size_id = int(size_id)
+            unit_price = float(unit_price) if unit_price else 0
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Invalid flavour or size ID'}), 400
         
         # Check if product already exists
         existing = execute_query("""
@@ -59,10 +68,12 @@ def create_product():
         flavour_res = execute_query("SELECT flavour_name FROM flavours WHERE flavour_id = %s", (flavour_id,))
         size_res = execute_query("SELECT size_name FROM pack_sizes WHERE size_id = %s", (size_id,))
         
-        flavour_name = flavour_res[0]['flavour_name'] if flavour_res else ''
-        size_name = size_res[0]['size_name'] if size_res else ''
+        if not flavour_res or not size_res:
+            return jsonify({'error': 'Invalid flavour or size'}), 400
         
-        # ✅ Use unit_price_ugx column
+        flavour_name = flavour_res[0]['flavour_name']
+        size_name = size_res[0]['size_name']
+        
         product_id = execute_insert("""
             INSERT INTO products (flavour_id, size_id, unit_price_ugx, flavour, size)
             VALUES (%s, %s, %s, %s, %s)
@@ -70,7 +81,15 @@ def create_product():
         
         return jsonify({
             'message': 'Product created successfully',
-            'product_id': product_id
+            'product_id': product_id,
+            'product': {
+                'product_id': product_id,
+                'flavour_id': flavour_id,
+                'size_id': size_id,
+                'unit_price': unit_price,
+                'flavour_name': flavour_name,
+                'size_name': size_name
+            }
         }), 201
         
     except Exception as e:
@@ -88,7 +107,6 @@ def update_product(product_id):
         if unit_price is None:
             return jsonify({'error': 'Unit price is required'}), 400
         
-        # ✅ Use unit_price_ugx column
         execute_update("""
             UPDATE products SET unit_price_ugx = %s WHERE product_id = %s
         """, (unit_price, product_id))
@@ -104,10 +122,12 @@ def update_product(product_id):
 @token_required
 def delete_product(product_id):
     try:
+        # Check if product is used in orders
         orders = execute_query("SELECT order_id FROM order_lines WHERE product_id = %s LIMIT 1", (product_id,))
         if orders:
             return jsonify({'error': 'Cannot delete product that has been ordered'}), 400
         
+        # Check if product is used in batches
         batches = execute_query("SELECT batch_id FROM batch_products WHERE product_id = %s LIMIT 1", (product_id,))
         if batches:
             return jsonify({'error': 'Cannot delete product that has been produced'}), 400
