@@ -312,13 +312,20 @@ const Dashboard: React.FC = () => {
             const customers = (customersRes as any)?.data || [];
             const products = (productsRes as any)?.data || [];
 
-            const today = new Date().toISOString().split('T')[0];
+            // ✅ DEBUG: Log batches data
+            console.log('📦 Batches from API:', batches);
+            console.log('📦 Batches count:', batches.length);
+            console.log('📅 Batch dates:', batches.map((b: Batch) => b.batch_date));
 
-            // ✅ Calculate metrics
+            const today = new Date().toISOString().split('T')[0];
+            console.log('📅 Today:', today);
+
             const todayBatches = batches.filter((b: Batch) => {
                 const batchDate = new Date(b.batch_date).toISOString().split('T')[0];
                 return batchDate === today;
             }).length;
+
+            console.log('🏭 Today\'s Batches:', todayBatches);
 
             const pendingDeliveries = deliveries.filter((d: Delivery) => d.status === 'pending').length;
 
@@ -334,13 +341,6 @@ const Dashboard: React.FC = () => {
                 }, 0);
 
             const creditSummary = credit as CreditSummary;
-
-            // ✅ Debug logs
-            console.log('🔍 DASHBOARD DATA:');
-            console.log('📅 Today:', today);
-            console.log('🏭 Today\'s Batches:', todayBatches);
-            console.log('🚚 Pending Deliveries:', pendingDeliveries);
-            console.log('⚠️ Low Stock:', lowStock);
 
             setMetrics({
                 todayBatches,
