@@ -5,7 +5,7 @@ interface MetricCardProps {
     title: string;
     value: string | number;
     icon: string;
-    color?: 'primary' | 'warning' | 'danger' | 'info' | 'success';
+    color?: 'primary' | 'warning' | 'danger' | 'info' | 'success' | 'secondary';
 }
 
 const MetricCard: React.FC<MetricCardProps> = ({
