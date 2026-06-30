@@ -113,6 +113,32 @@ interface PasswordStatus {
     last_password_change: string | null;
 }
 
+// Product types
+interface Product {
+    product_id: number;
+    flavour_id: number;
+    size_id: number;
+    unit_price: number;
+    flavour_name?: string;
+    size_name?: string;
+}
+
+interface Flavour {
+    flavour_id: number;
+    flavour_name: string;
+}
+
+interface PackSize {
+    size_id: number;
+    size_name: string;
+}
+
+interface ProductData {
+    flavour_id: number;
+    size_id: number;
+    unit_price?: number;
+}
+
 // ============ API INTERCEPTORS ============
 api.interceptors.request.use(
     (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
@@ -128,17 +154,14 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     (error: AxiosError) => {
-        // ✅ Don't redirect to login for auth endpoints
         const isAuthEndpoint = error.config?.url?.includes('/auth/');
         
-        // Only redirect if it's a 401 and NOT an auth endpoint
         if (error.response?.status === 401 && !isAuthEndpoint) {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             window.location.href = '/login';
         }
         
-        // ✅ For auth endpoints, just reject the promise so the component can handle it
         return Promise.reject(error);
     }
 );
@@ -153,7 +176,6 @@ export const AuthAPI = {
         api.post('/auth/register', data),
     me: (): Promise<{ data: User }> =>
         api.get('/auth/me'),
-    // ✅ ADD CHANGE PASSWORD
     changePassword: (data: { current_password: string; new_password: string; confirm_password: string }): Promise<{ data: ApiResponse }> =>
         api.post('/auth/change-password', data),
 };
@@ -172,10 +194,20 @@ export const BatchAPI = {
 
 // ============ PRODUCT API ============
 export const ProductAPI = {
-    getAll: (): Promise<{ data: unknown[] }> =>
+    getAll: (): Promise<{ data: Product[] }> =>
         api.get('/products'),
-    getOne: (id: number): Promise<{ data: unknown }> =>
+    getOne: (id: number): Promise<{ data: Product }> =>
         api.get(`/products/${id}`),
+    create: (data: ProductData): Promise<{ data: ApiResponse & { product?: Product } }> =>
+        api.post('/products', data),
+    update: (id: number, data: { unit_price: number }): Promise<{ data: ApiResponse & { product?: Product } }> =>
+        api.put(`/products/${id}`, data),
+    delete: (id: number): Promise<{ data: ApiResponse }> =>
+        api.delete(`/products/${id}`),
+    getFlavours: (): Promise<{ data: Flavour[] }> =>
+        api.get('/flavours'),
+    getPackSizes: (): Promise<{ data: PackSize[] }> =>
+        api.get('/pack-sizes'),
 };
 
 // ============ ORDER API ============
@@ -200,53 +232,109 @@ export const StaffAPI = {
 
 // ============ DELIVERY API ============
 export const DeliveryAPI = {
-    getAll: (): Promise<{ data: unknown[] }> =>
+    getAll: (): Promise<{ data: DeliveryData[] }> =>
         api.get('/deliveries'),
     updateStatus: (id: number, status: string): Promise<{ data: ApiResponse }> =>
         api.put(`/deliveries/${id}/status`, { status }),
-    getAudit: (): Promise<{ data: unknown[] }> =>
+    getAudit: (): Promise<{ data: DeliveryAudit[] }> =>
         api.get('/deliveries/audit'),
 };
 
+interface DeliveryData {
+    delivery_id: number;
+    order_id: number;
+    staff_id: number;
+    delivery_date: string;
+    status: string;
+    notes?: string;
+}
+
+interface DeliveryAudit {
+    audit_id: number;
+    delivery_id: number;
+    old_status: string;
+    new_status: string;
+    changed_at: string;
+    changed_by: string;
+}
+
 // ============ INVENTORY API ============
 export const InventoryAPI = {
-    getAll: (): Promise<{ data: unknown[] }> =>
+    getAll: (): Promise<{ data: InventoryItem[] }> =>
         api.get('/inventory'),
     updateStock: (id: number, quantity: number, action: 'add' | 'subtract'): Promise<{ data: ApiResponse }> =>
         api.put(`/inventory/${id}`, { quantity, action } as StockUpdateData),
-    getLowStock: (): Promise<{ data: unknown[] }> =>
+    getLowStock: (): Promise<{ data: InventoryItem[] }> =>
         api.get('/inventory/low-stock'),
 };
 
+interface InventoryItem {
+    material_id: number;
+    material_name: string;
+    unit: string;
+    current_stock: number;
+    minimum_stock: number;
+    low_stock: boolean | number;
+    supplier_id?: number;
+    supplier_name?: string;
+    last_restocked?: string;
+}
+
 // ============ CUSTOMER API ============
 export const CustomerAPI = {
-    getAll: (): Promise<{ data: unknown[] }> =>
+    getAll: (): Promise<{ data: Customer[] }> =>
         api.get('/customers'),
-    getOne: (id: number): Promise<{ data: unknown }> =>
+    getOne: (id: number): Promise<{ data: Customer }> =>
         api.get(`/customers/${id}`),
 };
+
+interface Customer {
+    customer_id: number;
+    name: string;
+    location?: string;
+    phone?: string;
+    customer_type?: string;
+    notes?: string;
+}
 
 // ============ EXPENDITURE API ============
 export const ExpenditureAPI = {
     create: (data: ExpenditureData): Promise<{ data: ApiResponse }> =>
         api.post('/expenditures', data),
-    getSummary: (): Promise<{ data: unknown }> =>
+    getSummary: (): Promise<{ data: ExpenditureSummary[] }> =>
         api.get('/expenditures/summary'),
 };
 
+interface ExpenditureSummary {
+    category: string;
+    total_spent: number;
+    count: number;
+}
+
 // ============ CREDIT API ============
 export const CreditAPI = {
-    getAll: (): Promise<{ data: unknown[] }> =>
+    getAll: (): Promise<{ data: CreditAccount[] }> =>
         api.get('/credit-accounts'),
     getSummary: (): Promise<{ data: { total_outstanding: number; count: number } }> =>
         api.get('/credit-accounts/summary'),
 };
 
+interface CreditAccount {
+    credit_id: number;
+    customer_id: number;
+    amount_ugx: number;
+    date_recorded: string;
+    status: 'pending' | 'partial' | 'paid' | 'overdue';
+    notes?: string;
+    customer_name?: string;
+    location?: string;
+}
+
 // ============ SUPPLIER API ============
 export const SupplierAPI = {
-    getAll: (): Promise<{ data: unknown[] }> =>
+    getAll: (): Promise<{ data: Supplier[] }> =>
         api.get('/suppliers'),
-    getOne: (id: number): Promise<{ data: unknown }> =>
+    getOne: (id: number): Promise<{ data: Supplier }> =>
         api.get(`/suppliers/${id}`),
     create: (data: SupplierData): Promise<{ data: ApiResponse }> =>
         api.post('/suppliers', data),
@@ -256,11 +344,21 @@ export const SupplierAPI = {
         api.delete(`/suppliers/${id}`),
 };
 
+interface Supplier {
+    supplier_id: number;
+    supplier_name: string;
+    contact_person?: string;
+    phone?: string;
+    email?: string;
+    location?: string;
+    notes?: string;
+}
+
 // ============ RAW MATERIAL API ============
 export const RawMaterialAPI = {
-    getAll: (): Promise<{ data: unknown[] }> =>
+    getAll: (): Promise<{ data: RawMaterial[] }> =>
         api.get('/raw-materials'),
-    getOne: (id: number): Promise<{ data: unknown }> =>
+    getOne: (id: number): Promise<{ data: RawMaterial }> =>
         api.get(`/raw-materials/${id}`),
     create: (data: RawMaterialData): Promise<{ data: ApiResponse }> =>
         api.post('/raw-materials', data),
@@ -270,9 +368,22 @@ export const RawMaterialAPI = {
         api.delete(`/raw-materials/${id}`),
     updateStock: (id: number, quantity: number, action: 'add' | 'subtract'): Promise<{ data: ApiResponse }> =>
         api.put(`/raw-materials/${id}/stock`, { quantity, action } as StockUpdateData),
-    getLowStock: (): Promise<{ data: unknown[] }> =>
+    getLowStock: (): Promise<{ data: RawMaterial[] }> =>
         api.get('/raw-materials/low-stock'),
 };
+
+interface RawMaterial {
+    material_id: number;
+    material_name: string;
+    unit: string;
+    cost_per_unit_ugx: number;
+    current_stock: number;
+    minimum_stock: number;
+    low_stock: boolean | number;
+    supplier_id?: number;
+    supplier_name?: string;
+    last_restocked?: string;
+}
 
 // ============ ADMIN API ============
 export const AdminAPI = {
@@ -292,7 +403,6 @@ export const AdminAPI = {
         api.put(`/admin/users/${id}/activate`),
     getStats: (): Promise<{ data: SystemStats }> =>
         api.get('/admin/stats'),
-    // ✅ ADD PASSWORD MANAGEMENT
     resetPassword: (userId: number, newPassword: string): Promise<{ data: ApiResponse }> =>
         api.post(`/admin/users/${userId}/reset-password`, { new_password: newPassword }),
     getPasswordStatus: (userId: number): Promise<{ data: PasswordStatus }> =>
