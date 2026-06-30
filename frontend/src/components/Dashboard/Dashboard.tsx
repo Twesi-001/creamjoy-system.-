@@ -17,12 +17,12 @@ import {
     Filler
 } from 'chart.js';
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
-import { 
-    BatchAPI, 
-    OrderAPI, 
-    DeliveryAPI, 
-    InventoryAPI, 
-    CreditAPI, 
+import {
+    BatchAPI,
+    OrderAPI,
+    DeliveryAPI,
+    InventoryAPI,
+    CreditAPI,
     CustomerAPI,
     ProductAPI
 } from '../../api/api';
@@ -218,6 +218,22 @@ const Dashboard: React.FC = () => {
                 date,
                 count: batches.filter((b: Batch) => b.batch_date === date).length
             }));
+
+            // ✅ Detailed debug logs
+            console.log('🔍 PRODUCTION CHART DEBUG:');
+            console.log('📅 Last 7 Days:', last7Days);
+            console.log('📊 Daily Batches:', dailyBatches);
+            console.log('📦 Total Batches:', batches.length);
+            console.log('📋 All Batch Dates:', batches.map((b: Batch) => b.batch_date));
+
+
+            // Check if any batches match the last 7 days
+            const matchingBatches = batches.filter((b: Batch) => {
+                const match = last7Days.includes(b.batch_date);
+                if (match) console.log(`✅ Batch ${b.batch_number} on ${b.batch_date} matches!`);
+                return match;
+            });
+            console.log('✅ Matching Batches:', matchingBatches.length);
 
             setChartData({
                 labels: dailyBatches.map((d: { date: string; count: number }) => d.date),
