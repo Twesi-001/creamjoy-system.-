@@ -8,13 +8,15 @@ import traceback
 @token_required
 def get_products():
     try:
-        # Simple query first to test
+        # ✅ Use unit_price_ugx (correct column name)
         products = execute_query("""
             SELECT 
                 p.product_id,
                 p.flavour_id,
                 p.size_id,
                 p.unit_price_ugx as unit_price,
+                p.flavour,
+                p.size,
                 f.flavour_name,
                 s.size_name
             FROM products p
@@ -60,6 +62,7 @@ def create_product():
         flavour_name = flavour_res[0]['flavour_name'] if flavour_res else ''
         size_name = size_res[0]['size_name'] if size_res else ''
         
+        # ✅ Use unit_price_ugx column
         product_id = execute_insert("""
             INSERT INTO products (flavour_id, size_id, unit_price_ugx, flavour, size)
             VALUES (%s, %s, %s, %s, %s)
@@ -85,6 +88,7 @@ def update_product(product_id):
         if unit_price is None:
             return jsonify({'error': 'Unit price is required'}), 400
         
+        # ✅ Use unit_price_ugx column
         execute_update("""
             UPDATE products SET unit_price_ugx = %s WHERE product_id = %s
         """, (unit_price, product_id))
