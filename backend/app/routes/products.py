@@ -23,7 +23,7 @@ def get_products():
         """)
         return jsonify(products), 200
     except Exception as e:
-        print(f"🔥 Error: {str(e)}")
+        print(f"🔥 Error fetching products: {str(e)}")
         print(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
