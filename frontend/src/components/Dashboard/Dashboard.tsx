@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable react-hooks/immutability */
@@ -216,8 +217,32 @@ const Dashboard: React.FC = () => {
             const last7Days = getLast7Days();
             const dailyBatches = last7Days.map((date: string) => ({
                 date,
-                count: batches.filter((b: Batch) => b.batch_date === date).length
+                // ✅ FIX: Convert batch dates to YYYY-MM-DD for comparison
+                count: batches.filter((b: Batch) => {
+                    try {
+                        const batchDate = new Date(b.batch_date);
+                        const formattedDate = batchDate.toISOString().split('T')[0];
+                        return formattedDate === date;
+                    } catch (e) {
+                        return false;
+                    }
+                }).length
             }));
+
+            // ✅ Debug: Log the comparison
+            console.log('📊 Daily Batches (fixed):', dailyBatches);
+            console.log('📅 Last 7 Days (YYYY-MM-DD):', last7Days);
+
+            setChartData({
+                labels: dailyBatches.map((d) => d.date),
+                datasets: [
+                    {
+                        label: 'Batches Produced',
+                        data: dailyBatches.map((d) => d.count),
+                        backgroundColor: '#1D9E75',
+                    }
+                ]
+            });
 
             // ✅ Detailed debug logs
             console.log('🔍 PRODUCTION CHART DEBUG:');
