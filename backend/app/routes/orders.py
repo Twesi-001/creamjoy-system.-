@@ -1,84 +1,143 @@
 from flask import request, jsonify
 from app.routes import api_bp
-from app.models import Order, Product
 from app.routes.auth import token_required
-from app.database import execute_insert
+from app.database import execute_query, execute_insert, execute_update
+import traceback
 
 @api_bp.route('/orders', methods=['GET'])
 @token_required
 def get_orders():
-    orders = Order.get_all()
-    return jsonify(orders), 200
-
-@api_bp.route('/orders/<int:order_id>', methods=['GET'])
-@token_required
-def get_order(order_id):
-    order = Order.get_by_id(order_id)
-    if not order:
-        return jsonify({'error': 'Order not found'}), 404
-    
-    # Get order lines
-    from app.database import execute_query
-    lines = execute_query("""
-        SELECT ol.*, f.flavour_name, s.size_name
-        FROM order_lines ol
-        JOIN products p ON ol.product_id = p.product_id
-        JOIN flavours f ON p.flavour_id = f.flavour_id
-        JOIN pack_sizes s ON p.size_id = s.size_id
-        WHERE ol.order_id = %s
-    """, (order_id,))
-    
-    order['order_lines'] = lines
-    return jsonify(order), 200
+    try:
+        orders = execute_query("""
+            SELECT 
+                o.order_id,
+                o.customer_id,
+                o.order_date,
+                o.delivery_date,
+                o.payment_method,
+                o.payment_status,
+                o.total_amount_ugx as total_amount,
+                o.notes,
+                o.created_at,
+                c.name as customer_name
+            FROM orders o
+            LEFT JOIN customers c ON o.customer_id = c.customer_id
+            ORDER BY o.order_date DESC
+        """)
+        return jsonify(orders), 200
+    except Exception as e:
+        print(f"🔥 Error: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/orders', methods=['POST'])
 @token_required
 def create_order():
-    data = request.get_json()
-    
-    customer_id = data.get('customer_id')
-    order_date = data.get('order_date')
-    delivery_date = data.get('delivery_date')
-    payment_method = data.get('payment_method', 'cash')
-    order_lines = data.get('order_lines', [])
-    
-    if not customer_id or not order_date or not order_lines:
-        return jsonify({'error': 'Customer, date, and order lines required'}), 400
-    
-    # Calculate total
-    total_amount = 0
-    for line in order_lines:
-        product = Product.get_by_id(line.get('product_id'))
-        if product:
-            price = product.get('unit_price') or 0
-            total_amount += price * line.get('quantity', 0)
-    
-    # Create order
-    order_id = Order.create(customer_id, order_date, delivery_date, payment_method, total_amount)
-    
-    # Add order lines
-    for line in order_lines:
-        product = Product.get_by_id(line.get('product_id'))
-        price = product.get('unit_price') or 0
-        execute_insert("""
-            INSERT INTO order_lines (order_id, product_id, quantity, unit_price_at_time)
-            VALUES (%s, %s, %s, %s)
-        """, (order_id, line.get('product_id'), line.get('quantity'), price))
-    
-    return jsonify({
-        'message': 'Order created successfully',
-        'order_id': order_id,
-        'total_amount': total_amount
-    }), 201
+    try:
+        data = request.get_json()
+        print(f"📦 Received order data: {data}")
+        
+        # ✅ Validate required fields
+        customer_id = data.get('customer_id')
+        order_date = data.get('order_date')
+        delivery_date = data.get('delivery_date')
+        payment_method = data.get('payment_method', 'cash')
+        order_lines = data.get('order_lines', [])
+        
+        if not customer_id:
+            return jsonify({'error': 'Customer ID is required'}), 400
+        
+        if not order_date:
+            return jsonify({'error': 'Order date is required'}), 400
+        
+        if not order_lines or len(order_lines) == 0:
+            return jsonify({'error': 'At least one product is required'}), 400
+        
+        # ✅ Validate customer exists
+        print(f"🔍 Checking customer: {customer_id}")
+        customer = execute_query("SELECT customer_id FROM customers WHERE customer_id = %s", (customer_id,))
+        if not customer:
+            return jsonify({'error': f'Customer with ID {customer_id} not found'}), 404
+        
+        # ✅ Validate products and calculate total
+        total_amount = 0
+        for line in order_lines:
+            product_id = line.get('product_id')
+            quantity = line.get('quantity', 0)
+            
+            print(f"🔍 Checking product: {product_id}")
+            # ✅ Use unit_price_ugx column name
+            product = execute_query("SELECT product_id, unit_price_ugx FROM products WHERE product_id = %s", (product_id,))
+            if not product:
+                return jsonify({'error': f'Product with ID {product_id} not found'}), 404
+            
+            price = product[0].get('unit_price_ugx') or 0
+            total_amount += price * quantity
+        
+        # ✅ Validate payment method
+        valid_payment_methods = ['cash', 'mobile_money', 'credit']
+        if payment_method not in valid_payment_methods:
+            return jsonify({'error': f'Invalid payment method. Must be one of: {valid_payment_methods}'}), 400
+        
+        # ✅ Create order (using total_amount_ugx column name)
+        print(f"📝 Creating order...")
+        order_id = execute_insert("""
+            INSERT INTO orders 
+            (customer_id, order_date, delivery_date, payment_method, payment_status, total_amount_ugx)
+            VALUES (%s, %s, %s, %s, 'pending', %s)
+        """, (customer_id, order_date, delivery_date, payment_method, total_amount))
+        
+        print(f"✅ Order created with ID: {order_id}")
+        
+        # ✅ Create order lines (using unit_price_ugx and line_total_ugx column names)
+        for line in order_lines:
+            product_id = line.get('product_id')
+            quantity = line.get('quantity', 0)
+            
+            product = execute_query("SELECT unit_price_ugx FROM products WHERE product_id = %s", (product_id,))
+            price = product[0].get('unit_price_ugx') or 0 if product else 0
+            line_total = price * quantity
+            
+            execute_insert("""
+                INSERT INTO order_lines (order_id, product_id, quantity, unit_price_ugx, line_total_ugx)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (order_id, product_id, quantity, price, line_total))
+        
+        return jsonify({
+            'message': 'Order created successfully',
+            'order_id': order_id,
+            'total_amount': total_amount
+        }), 201
+        
+    except Exception as e:
+        print(f"🔥 ERROR creating order: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/orders/<int:order_id>/status', methods=['PUT'])
 @token_required
 def update_order_status(order_id):
-    data = request.get_json()
-    status = data.get('status')
-    
-    if not status:
-        return jsonify({'error': 'Status required'}), 400
-    
-    Order.update_status(order_id, status)
-    return jsonify({'message': 'Order status updated'}), 200
+    try:
+        data = request.get_json()
+        status = data.get('status')
+        
+        if not status:
+            return jsonify({'error': 'Status is required'}), 400
+        
+        valid_statuses = ['pending', 'paid', 'partial']
+        if status not in valid_statuses:
+            return jsonify({'error': f'Invalid status. Must be one of: {valid_statuses}'}), 400
+        
+        order = execute_query("SELECT order_id FROM orders WHERE order_id = %s", (order_id,))
+        if not order:
+            return jsonify({'error': 'Order not found'}), 404
+        
+        execute_update("""
+            UPDATE orders SET payment_status = %s WHERE order_id = %s
+        """, (status, order_id))
+        
+        return jsonify({'message': 'Order status updated successfully'}), 200
+    except Exception as e:
+        print(f"🔥 Error: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({'error': str(e)}), 500
