@@ -8,22 +8,25 @@ import traceback
 @token_required
 def get_products():
     try:
+        # Simple query first to test
         products = execute_query("""
             SELECT 
                 p.product_id,
                 p.flavour_id,
                 p.size_id,
-                p.unit_price,
+                p.unit_price_ugx as unit_price,
                 f.flavour_name,
                 s.size_name
             FROM products p
-            JOIN flavours f ON p.flavour_id = f.flavour_id
-            JOIN pack_sizes s ON p.size_id = s.size_id
+            LEFT JOIN flavours f ON p.flavour_id = f.flavour_id
+            LEFT JOIN pack_sizes s ON p.size_id = s.size_id
             ORDER BY f.flavour_name, FIELD(s.size_name, '5L', '2L', '1L', '300ml')
         """)
+        
+        print(f"✅ Products found: {len(products)}")
         return jsonify(products), 200
     except Exception as e:
-        print(f"🔥 Error fetching products: {str(e)}")
+        print(f"🔥 Error: {str(e)}")
         print(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
@@ -50,29 +53,21 @@ def create_product():
         if existing:
             return jsonify({'error': 'This product combination already exists'}), 400
         
-        product_id = execute_insert("""
-            INSERT INTO products (flavour_id, size_id, unit_price)
-            VALUES (%s, %s, %s)
-        """, (flavour_id, size_id, unit_price))
+        # Get flavour and size names
+        flavour_res = execute_query("SELECT flavour_name FROM flavours WHERE flavour_id = %s", (flavour_id,))
+        size_res = execute_query("SELECT size_name FROM pack_sizes WHERE size_id = %s", (size_id,))
         
-        # Get the created product
-        product = execute_query("""
-            SELECT 
-                p.product_id,
-                p.flavour_id,
-                p.size_id,
-                p.unit_price,
-                f.flavour_name,
-                s.size_name
-            FROM products p
-            JOIN flavours f ON p.flavour_id = f.flavour_id
-            JOIN pack_sizes s ON p.size_id = s.size_id
-            WHERE p.product_id = %s
-        """, (product_id,))
+        flavour_name = flavour_res[0]['flavour_name'] if flavour_res else ''
+        size_name = size_res[0]['size_name'] if size_res else ''
+        
+        product_id = execute_insert("""
+            INSERT INTO products (flavour_id, size_id, unit_price_ugx, flavour, size)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (flavour_id, size_id, unit_price, flavour_name, size_name))
         
         return jsonify({
             'message': 'Product created successfully',
-            'product': product[0] if product else None
+            'product_id': product_id
         }), 201
         
     except Exception as e:
@@ -85,36 +80,16 @@ def create_product():
 def update_product(product_id):
     try:
         data = request.get_json()
-        print(f"📦 Updating product {product_id}: {data}")
-        
         unit_price = data.get('unit_price')
         
         if unit_price is None:
             return jsonify({'error': 'Unit price is required'}), 400
         
         execute_update("""
-            UPDATE products SET unit_price = %s WHERE product_id = %s
+            UPDATE products SET unit_price_ugx = %s WHERE product_id = %s
         """, (unit_price, product_id))
         
-        # Get the updated product
-        product = execute_query("""
-            SELECT 
-                p.product_id,
-                p.flavour_id,
-                p.size_id,
-                p.unit_price,
-                f.flavour_name,
-                s.size_name
-            FROM products p
-            JOIN flavours f ON p.flavour_id = f.flavour_id
-            JOIN pack_sizes s ON p.size_id = s.size_id
-            WHERE p.product_id = %s
-        """, (product_id,))
-        
-        return jsonify({
-            'message': 'Product updated successfully',
-            'product': product[0] if product else None
-        }), 200
+        return jsonify({'message': 'Product updated successfully'}), 200
         
     except Exception as e:
         print(f"🔥 Error updating product: {str(e)}")
@@ -125,12 +100,10 @@ def update_product(product_id):
 @token_required
 def delete_product(product_id):
     try:
-        # Check if product is used in orders
         orders = execute_query("SELECT order_id FROM order_lines WHERE product_id = %s LIMIT 1", (product_id,))
         if orders:
             return jsonify({'error': 'Cannot delete product that has been ordered'}), 400
         
-        # Check if product is used in batches
         batches = execute_query("SELECT batch_id FROM batch_products WHERE product_id = %s LIMIT 1", (product_id,))
         if batches:
             return jsonify({'error': 'Cannot delete product that has been produced'}), 400
