@@ -329,6 +329,16 @@ const Dashboard: React.FC = () => {
 
             const pendingDeliveries = deliveries.filter((d: Delivery) => d.status === 'pending').length;
 
+            // ✅ DEBUG: Log inventory data
+            console.log('📋 Inventory from API:', inventory);
+            console.log('⚠️ Low Stock Items:', inventory.filter((i: InventoryItem) => i.low_stock === true));
+            console.log('⚠️ Low Stock Count:', inventory.filter((i: InventoryItem) => i.low_stock === true).length);
+
+            // ✅ Log each item's low_stock status
+            inventory.forEach((item: InventoryItem) => {
+                console.log(`📦 ${item.material_name}: low_stock = ${item.low_stock}, current_stock = ${item.current_stock}, minimum_stock = ${item.minimum_stock}`);
+            });
+
             const lowStock = inventory.filter((i: InventoryItem) => i.low_stock === true).length;
 
             const totalRevenue = orders
