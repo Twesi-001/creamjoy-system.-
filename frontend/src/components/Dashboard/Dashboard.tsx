@@ -13,7 +13,8 @@ import {
     Legend,
     ArcElement,
     PointElement,
-    LineElement
+    LineElement,
+    Filler
 } from 'chart.js';
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import { 
@@ -37,7 +38,8 @@ ChartJS.register(
     Legend,
     ArcElement,
     PointElement,
-    LineElement
+    LineElement,
+    Filler
 );
 
 // ============ TYPE DEFINITIONS ============
@@ -113,6 +115,7 @@ interface User {
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
 
 const Dashboard: React.FC = () => {
     const [userRole, setUserRole] = useState<string>('delivery');
@@ -231,29 +234,41 @@ const Dashboard: React.FC = () => {
 
             generateRoleBasedCharts(batches, orders, deliveries, customers, products);
 
-            // Revenue chart - last 7 days
-            const dailyRevenue = last7Days.map((date: string) => ({
-                date,
-                total: orders
-                    .filter((o: Order) => o.order_date === date && o.payment_status === 'paid')
-                    .reduce((sum: number, o: Order) => {
-                        const amount = typeof o.total_amount === 'string' 
-                            ? parseFloat(o.total_amount) 
-                            : Number(o.total_amount || 0);
-                        return sum + (isNaN(amount) ? 0 : amount);
-                    }, 0)
-            }));
+            // ✅ FIXED: Revenue chart - properly filter by order_date
+            const dailyRevenue = last7Days.map((date: string) => {
+                // Filter orders for this specific date
+                const dayOrders = orders.filter((o: Order) => {
+                    const orderDate = new Date(o.order_date).toISOString().split('T')[0];
+                    return orderDate === date && o.payment_status === 'paid';
+                });
+
+                // Sum revenue for this day
+                const total = dayOrders.reduce((sum: number, o: Order) => {
+                    const amount = typeof o.total_amount === 'string' 
+                        ? parseFloat(o.total_amount) 
+                        : Number(o.total_amount || 0);
+                    return sum + (isNaN(amount) ? 0 : amount);
+                }, 0);
+
+                return {
+                    date,
+                    total
+                };
+            });
+
+            // Debug: Log the daily revenue
+            console.log('📊 Daily Revenue Data:', dailyRevenue);
 
             setRevenueChartData({
-                labels: dailyRevenue.map((d: { date: string; total: number }) => d.date),
+                labels: dailyRevenue.map((d) => d.date),
                 datasets: [
                     {
                         label: 'Daily Revenue (UGX)',
-                        data: dailyRevenue.map((d: { date: string; total: number }) => d.total),
+                        data: dailyRevenue.map((d) => d.total),
                         backgroundColor: 'rgba(29, 158, 117, 0.6)',
                         borderColor: '#1D9E75',
                         borderWidth: 2,
-                        fill: true,
+                        fill: false, // ✅ Changed to false to avoid filler plugin issues
                         tension: 0.4,
                     }
                 ]
