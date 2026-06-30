@@ -76,11 +76,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
                 <div className="sidebar-overlay active" onClick={onClose} />
             )}
             <nav className={`sidebar ${isOpen ? 'open' : ''}`}>
-                <div className="sidebar-brand">
-                    <span className="brand-icon">🥛</span>
-                    <span className="brand-name">CreamJoy</span>
-                </div>
-
                 <div className="sidebar-user">
                     <span className="user-avatar">👤</span>
                     <div className="user-info">
