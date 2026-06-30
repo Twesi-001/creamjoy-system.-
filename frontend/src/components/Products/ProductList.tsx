@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ProductAPI } from '../../api/api';
 import './ProductList.css';
@@ -46,12 +45,14 @@ const ProductList: React.FC = () => {
         unit_price: 0
     });
     const [error, setError] = useState<string>('');
+    const [success, setSuccess] = useState<string>('');
 
     useEffect(() => {
         let isMounted = true;
         const fetchData = async (): Promise<void> => {
             setLoading(true);
             setError('');
+            setSuccess('');
             try {
                 const [productsRes, flavoursRes, sizesRes] = await Promise.all([
                     ProductAPI.getAll(),
@@ -90,46 +91,67 @@ const ProductList: React.FC = () => {
         }));
     };
 
-   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    try {
-        // ✅ Validate
-        if (!formData.flavour_id || !formData.size_id) {
-            setError('Please select both flavour and size');
-            setLoading(false);
-            return;
-        }
-        
-        if (formData.unit_price < 0) {
-            setError('Price cannot be negative');
-            setLoading(false);
-            return;
-        }
-
-        console.log('📦 Sending product data:', formData);
-        
-        if (editingProduct) {
-            await ProductAPI.update(editingProduct.product_id, {
-                unit_price: formData.unit_price
+    const handleSubmit = async (e: React.FormEvent): Promise<void> => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+        setSuccess('');
+        try {
+            let successMessage = '';
+            
+            if (editingProduct) {
+                await ProductAPI.update(editingProduct.product_id, {
+                    unit_price: formData.unit_price
+                });
+                successMessage = `✅ Product updated successfully! (${editingProduct.flavour_name} - ${editingProduct.size_name})`;
+            } else {
+                // Check if flavour and size are selected
+                if (!formData.flavour_id || !formData.size_id) {
+                    setError('❌ Please select both flavour and size.');
+                    setLoading(false);
+                    return;
+                }
+                
+                await ProductAPI.create({
+                    flavour_id: Number(formData.flavour_id),
+                    size_id: Number(formData.size_id),
+                    unit_price: Number(formData.unit_price) || 0
+                });
+                
+                // Get the flavour and size names for the success message
+                const flavour = flavours.find(f => f.flavour_id === formData.flavour_id);
+                const size = packSizes.find(s => s.size_id === formData.size_id);
+                successMessage = `✅ Product added successfully! (${flavour?.flavour_name || ''} - ${size?.size_name || ''})`;
+            }
+            
+            setSuccess(successMessage);
+            
+            // Auto-hide success message after 3 seconds
+            setTimeout(() => {
+                setSuccess('');
+            }, 3000);
+            
+            setShowForm(false);
+            setEditingProduct(null);
+            setFormData({
+                flavour_id: 0,
+                size_id: 0,
+                unit_price: 0
             });
-        } else {
-            await ProductAPI.create({
-                flavour_id: Number(formData.flavour_id),
-                size_id: Number(formData.size_id),
-                unit_price: Number(formData.unit_price)
-            });
+            await fetchData();
+        } catch (err: unknown) {
+            const apiError = err as ApiError;
+            console.error('❌ Error:', apiError);
+            
+            if (apiError.response?.data?.error?.includes('already exists')) {
+                setError('❌ This product combination already exists. Please choose a different flavour and size.');
+            } else {
+                setError(apiError.response?.data?.error || 'Failed to save product');
+            }
+        } finally {
+            setLoading(false);
         }
-        // ... rest of the code
-    } catch (err: unknown) {
-        const apiError = err as ApiError;
-        console.error('❌ Error:', apiError.response?.data);
-        setError(apiError.response?.data?.error || 'Failed to save product');
-    } finally {
-        setLoading(false);
-    }
-};
+    };
 
     const handleEdit = (product: Product): void => {
         setEditingProduct(product);
@@ -139,12 +161,16 @@ const ProductList: React.FC = () => {
             unit_price: product.unit_price || 0
         });
         setShowForm(true);
+        setError('');
+        setSuccess('');
     };
 
     const handleDelete = async (productId: number, productName: string): Promise<void> => {
         if (!window.confirm(`Are you sure you want to delete ${productName}?`)) return;
         try {
             await ProductAPI.delete(productId);
+            setSuccess(`✅ Product "${productName}" deleted successfully!`);
+            setTimeout(() => setSuccess(''), 3000);
             const [productsRes] = await Promise.all([
                 ProductAPI.getAll()
             ]);
@@ -164,6 +190,7 @@ const ProductList: React.FC = () => {
             unit_price: 0
         });
         setError('');
+        setSuccess('');
     };
 
     const filteredProducts = products.filter((product: Product) =>
@@ -186,6 +213,7 @@ const ProductList: React.FC = () => {
             </div>
 
             {error && <div className="error-message">{error}</div>}
+            {success && <div className="success-message">{success}</div>}
 
             <div className="search-bar">
                 <input
@@ -200,7 +228,7 @@ const ProductList: React.FC = () => {
             {showForm && (
                 <div className="modal-overlay">
                     <div className="modal-content">
-                        <h2>{editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
+                        <h2>{editingProduct ? '✏️ Edit Product' : '➕ Add New Product'}</h2>
                         <form onSubmit={handleSubmit}>
                             {!editingProduct && (
                                 <>
@@ -261,9 +289,15 @@ const ProductList: React.FC = () => {
                                     min="0"
                                 />
                             </div>
+                            <div className="form-group">
+                                <label>Note: All 8 flavours × 4 sizes already exist.</label>
+                                <small style={{ color: '#6c757d' }}>
+                                    To add a new product, you need to add a new flavour or size first.
+                                </small>
+                            </div>
                             <div className="form-actions">
                                 <button type="submit" className="btn-primary" disabled={loading}>
-                                    {loading ? 'Saving...' : 'Save'}
+                                    {loading ? 'Saving...' : editingProduct ? 'Update Product' : 'Add Product'}
                                 </button>
                                 <button type="button" className="btn-secondary" onClick={handleCancel}>
                                     Cancel
@@ -327,3 +361,7 @@ const ProductList: React.FC = () => {
 };
 
 export default ProductList;
+
+function fetchData() {
+    throw new Error('Function not implemented.');
+}
