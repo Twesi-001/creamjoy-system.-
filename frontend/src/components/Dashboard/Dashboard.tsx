@@ -149,17 +149,17 @@ const Dashboard: React.FC = () => {
                 console.error('Error parsing user:', e);
             }
         }
-        fetchDashboardData();
+        void fetchDashboardData();
     }, []);
 
     const fetchDashboardData = async (): Promise<void> => {
         setLoading(true);
         try {
             const [
-                batchesRes, 
-                ordersRes, 
-                deliveriesRes, 
-                inventoryRes, 
+                batchesRes,
+                ordersRes,
+                deliveriesRes,
+                inventoryRes,
                 creditRes,
                 customersRes,
                 productsRes
@@ -186,17 +186,15 @@ const Dashboard: React.FC = () => {
             const pendingDeliveries = deliveries.filter((d: Delivery) => d.status === 'pending').length;
             const lowStock = inventory.filter((i: InventoryItem) => i.low_stock).length;
 
-            // ✅ Safely calculate total revenue
             const totalRevenue = orders
                 .filter((o: Order) => o.payment_status === 'paid')
                 .reduce((sum: number, o: Order) => {
-                    const amount = typeof o.total_amount === 'string' 
-                        ? parseFloat(o.total_amount) 
+                    const amount = typeof o.total_amount === 'string'
+                        ? parseFloat(o.total_amount)
                         : Number(o.total_amount || 0);
                     return sum + (isNaN(amount) ? 0 : amount);
                 }, 0);
 
-            // ✅ Get credit summary
             const creditSummary = credit as CreditSummary;
 
             setMetrics({
@@ -234,30 +232,22 @@ const Dashboard: React.FC = () => {
 
             generateRoleBasedCharts(batches, orders, deliveries, customers, products);
 
-            // ✅ FIXED: Revenue chart - properly filter by order_date
+            // Revenue chart - last 7 days
             const dailyRevenue = last7Days.map((date: string) => {
-                // Filter orders for this specific date
                 const dayOrders = orders.filter((o: Order) => {
                     const orderDate = new Date(o.order_date).toISOString().split('T')[0];
                     return orderDate === date && o.payment_status === 'paid';
                 });
 
-                // Sum revenue for this day
                 const total = dayOrders.reduce((sum: number, o: Order) => {
-                    const amount = typeof o.total_amount === 'string' 
-                        ? parseFloat(o.total_amount) 
+                    const amount = typeof o.total_amount === 'string'
+                        ? parseFloat(o.total_amount)
                         : Number(o.total_amount || 0);
                     return sum + (isNaN(amount) ? 0 : amount);
                 }, 0);
 
-                return {
-                    date,
-                    total
-                };
+                return { date, total };
             });
-
-            // Debug: Log the daily revenue
-            console.log('📊 Daily Revenue Data:', dailyRevenue);
 
             setRevenueChartData({
                 labels: dailyRevenue.map((d) => d.date),
@@ -268,7 +258,7 @@ const Dashboard: React.FC = () => {
                         backgroundColor: 'rgba(29, 158, 117, 0.6)',
                         borderColor: '#1D9E75',
                         borderWidth: 2,
-                        fill: false, // ✅ Changed to false to avoid filler plugin issues
+                        fill: false,
                         tension: 0.4,
                     }
                 ]
@@ -282,10 +272,10 @@ const Dashboard: React.FC = () => {
     };
 
     const generateRoleBasedCharts = (
-        batches: Batch[], 
-        orders: Order[], 
-        deliveries: Delivery[], 
-        customers: Customer[], 
+        batches: Batch[],
+        orders: Order[],
+        deliveries: Delivery[],
+        customers: Customer[],
         products: Product[]
     ): void => {
         let labels: string[] = [];
@@ -305,7 +295,7 @@ const Dashboard: React.FC = () => {
                 const pendingDeliveries = deliveries.filter((d: Delivery) => d.status === 'pending').length;
                 const completedDeliveries = deliveries.filter((d: Delivery) => d.status === 'delivered').length;
                 const completedBatches = batches.filter((b: Batch) => b.status === 'completed').length;
-                
+
                 labels = ['Completed Batches', 'Pending Batches', 'Completed Deliveries', 'Pending Deliveries'];
                 chartData = [completedBatches, batches.length - completedBatches, completedDeliveries, pendingDeliveries];
                 colors = ['#28a745', '#ffc107', '#17a2b8', '#dc3545'];
@@ -317,7 +307,7 @@ const Dashboard: React.FC = () => {
                 const completed = batches.filter((b: Batch) => b.status === 'completed').length;
                 const inProgress = batches.filter((b: Batch) => b.status === 'in_progress').length;
                 const pending = batches.filter((b: Batch) => b.status === 'pending').length;
-                
+
                 labels = ['Completed', 'In Progress', 'Pending'];
                 chartData = [completed, inProgress, pending];
                 colors = ['#28a745', '#ffc107', '#dc3545'];
@@ -329,7 +319,7 @@ const Dashboard: React.FC = () => {
                 const delivered = deliveries.filter((d: Delivery) => d.status === 'delivered').length;
                 const dispatched = deliveries.filter((d: Delivery) => d.status === 'dispatched').length;
                 const pendingDel = deliveries.filter((d: Delivery) => d.status === 'pending').length;
-                
+
                 labels = ['Delivered', 'Dispatched', 'Pending'];
                 chartData = [delivered, dispatched, pendingDel];
                 colors = ['#28a745', '#17a2b8', '#dc3545'];
@@ -341,7 +331,7 @@ const Dashboard: React.FC = () => {
                 const paid = orders.filter((o: Order) => o.payment_status === 'paid').length;
                 const partial = orders.filter((o: Order) => o.payment_status === 'partial').length;
                 const pendingOrders = orders.filter((o: Order) => o.payment_status === 'pending').length;
-                
+
                 labels = ['Paid', 'Partial', 'Pending'];
                 chartData = [paid, partial, pendingOrders];
                 colors = ['#28a745', '#ffc107', '#dc3545'];
@@ -354,7 +344,7 @@ const Dashboard: React.FC = () => {
                 const defaultData = [1, 1, 0];
                 const defaultColors = ['#1D9E75', '#17a2b8', '#dc3545'];
                 const defaultLabel = 'Overview';
-                
+
                 labels = defaultLabels;
                 chartData = defaultData;
                 colors = defaultColors;
@@ -388,22 +378,22 @@ const Dashboard: React.FC = () => {
 
     const getStatusBadgeClass = (status: string): string => {
         const statusMap: Record<string, string> = {
-            'completed': 'badge-success',
-            'in_progress': 'badge-warning',
-            'pending': 'badge-secondary',
-            'delivered': 'badge-success',
-            'dispatched': 'badge-info',
+            completed: 'badge-success',
+            in_progress: 'badge-warning',
+            pending: 'badge-secondary',
+            delivered: 'badge-success',
+            dispatched: 'badge-info',
         };
         return statusMap[status] || 'badge-secondary';
     };
 
     const getWelcomeMessage = (): string => {
         const messages: Record<string, string> = {
-            'admin': 'You have full access to all system data.',
-            'supervisor': 'You can view production and delivery overview.',
-            'production': 'Focus on your production batches.',
-            'delivery': 'Track your deliveries efficiently.',
-            'sales': 'Manage your orders and customers.'
+            admin: 'You have full access to all system data.',
+            supervisor: 'You can view production and delivery overview.',
+            production: 'Focus on your production batches.',
+            delivery: 'Track your deliveries efficiently.',
+            sales: 'Manage your orders and customers.'
         };
         return messages[userRole] || 'Welcome to your dashboard.';
     };
@@ -415,7 +405,9 @@ const Dashboard: React.FC = () => {
         <div className="dashboard">
             <div className="dashboard-header">
                 <h1>📊 Dashboard</h1>
-                <p>Welcome, {userName}! <span className="role-tag">{userRole}</span></p>
+                <p>
+                    Welcome, {userName}! <span className="role-tag">{userRole}</span>
+                </p>
                 <p className="role-message">{getWelcomeMessage()}</p>
             </div>
 
@@ -577,9 +569,11 @@ const Dashboard: React.FC = () => {
                                         <tr key={order.order_id}>
                                             <td>#{order.order_id}</td>
                                             <td>{order.order_date}</td>
-                                            <td>{typeof order.total_amount === 'string' 
-                                                ? parseFloat(order.total_amount).toLocaleString() 
-                                                : (order.total_amount || 0).toLocaleString()}</td>
+                                            <td>
+                                                {typeof order.total_amount === 'string'
+                                                    ? parseFloat(order.total_amount).toLocaleString()
+                                                    : (order.total_amount || 0).toLocaleString()}
+                                            </td>
                                             <td>
                                                 <span className={`badge ${order.payment_status === 'paid' ? 'badge-success' : 'badge-warning'}`}>
                                                     {order.payment_status}
