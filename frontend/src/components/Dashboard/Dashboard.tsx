@@ -65,9 +65,7 @@ interface ReportData {
     }[];
 }
 
-
-// ✅ Define what we actually get from the API
-interface ApiBatch {
+interface Batch {
     batch_id: number;
     batch_number: string;
     batch_date: string;
@@ -75,19 +73,20 @@ interface ApiBatch {
     total_units?: number;
 }
 
-interface ApiOrder {
+interface Order {
     order_id: number;
     order_date: string;
-    total_amount: number;
+    total_amount: string | number;
     payment_status: string;
+    customer_name?: string;
 }
 
-interface ApiDelivery {
+interface Delivery {
     delivery_id: number;
     status: string;
 }
 
-interface ApiInventoryItem {
+interface InventoryItem {
     material_id: number;
     material_name: string;
     current_stock: number;
@@ -95,32 +94,25 @@ interface ApiInventoryItem {
     low_stock: boolean;
 }
 
-interface ApiCustomer {
+interface Customer {
     customer_id: number;
 }
 
-interface ApiProduct {
+interface Product {
     product_id: number;
 }
 
-
-// ✅ Use the correct types from the API
-type Batch = ApiBatch;
-type Order = ApiOrder;
-type Delivery = ApiDelivery;
-type InventoryItem = ApiInventoryItem;
-type Customer = ApiCustomer;
-type Product = ApiProduct;
+interface CreditSummary {
+    total_outstanding: number;
+    count: number;
+}
 
 interface User {
     name: string;
     role: string;
 }
 
-// ✅ Disable ESLint for the whole file since we're handling API responses
 /* eslint-disable @typescript-eslint/no-explicit-any */
- 
- 
 
 const Dashboard: React.FC = () => {
     const [userRole, setUserRole] = useState<string>('delivery');
@@ -160,7 +152,6 @@ const Dashboard: React.FC = () => {
     const fetchDashboardData = async (): Promise<void> => {
         setLoading(true);
         try {
-             
             const [
                 batchesRes, 
                 ordersRes, 
@@ -179,12 +170,11 @@ const Dashboard: React.FC = () => {
                 ProductAPI.getAll()
             ]);
 
-            // ✅ Safely extract data with proper type casting
             const batches = (batchesRes as any)?.data || [];
             const orders = (ordersRes as any)?.data || [];
             const deliveries = (deliveriesRes as any)?.data || [];
             const inventory = (inventoryRes as any)?.data || [];
-            const credit = (creditRes as any)?.data || {};
+            const credit = (creditRes as any)?.data || { total_outstanding: 0, count: 0 };
             const customers = (customersRes as any)?.data || [];
             const products = (productsRes as any)?.data || [];
 
@@ -193,15 +183,24 @@ const Dashboard: React.FC = () => {
             const pendingDeliveries = deliveries.filter((d: Delivery) => d.status === 'pending').length;
             const lowStock = inventory.filter((i: InventoryItem) => i.low_stock).length;
 
+            // ✅ Safely calculate total revenue
             const totalRevenue = orders
                 .filter((o: Order) => o.payment_status === 'paid')
-                .reduce((sum: number, o: Order) => sum + (o.total_amount || 0), 0);
+                .reduce((sum: number, o: Order) => {
+                    const amount = typeof o.total_amount === 'string' 
+                        ? parseFloat(o.total_amount) 
+                        : Number(o.total_amount || 0);
+                    return sum + (isNaN(amount) ? 0 : amount);
+                }, 0);
+
+            // ✅ Get credit summary
+            const creditSummary = credit as CreditSummary;
 
             setMetrics({
                 todayBatches,
                 pendingDeliveries,
                 lowStock,
-                creditOutstanding: credit.total_outstanding || 0,
+                creditOutstanding: Number(creditSummary.total_outstanding || 0),
                 totalOrders: orders.length,
                 totalCustomers: customers.length,
                 totalProducts: products.length,
@@ -219,7 +218,6 @@ const Dashboard: React.FC = () => {
                 count: batches.filter((b: Batch) => b.batch_date === date).length
             }));
 
-            // ✅ Removed borderRadius (not valid in Chart.js)
             setChartData({
                 labels: dailyBatches.map((d: { date: string; count: number }) => d.date),
                 datasets: [
@@ -238,7 +236,12 @@ const Dashboard: React.FC = () => {
                 date,
                 total: orders
                     .filter((o: Order) => o.order_date === date && o.payment_status === 'paid')
-                    .reduce((sum: number, o: Order) => sum + (o.total_amount || 0), 0)
+                    .reduce((sum: number, o: Order) => {
+                        const amount = typeof o.total_amount === 'string' 
+                            ? parseFloat(o.total_amount) 
+                            : Number(o.total_amount || 0);
+                        return sum + (isNaN(amount) ? 0 : amount);
+                    }, 0)
             }));
 
             setRevenueChartData({
@@ -429,7 +432,7 @@ const Dashboard: React.FC = () => {
                 {['admin', 'sales'].includes(userRole) && (
                     <MetricCard
                         title="Total Revenue"
-                        value={`UGX ${metrics.totalRevenue.toLocaleString()}`}
+                        value={`UGX ${(metrics.totalRevenue || 0).toLocaleString()}`}
                         icon="💳"
                         color="success"
                     />
@@ -559,7 +562,9 @@ const Dashboard: React.FC = () => {
                                         <tr key={order.order_id}>
                                             <td>#{order.order_id}</td>
                                             <td>{order.order_date}</td>
-                                            <td>{order.total_amount?.toLocaleString() || 0}</td>
+                                            <td>{typeof order.total_amount === 'string' 
+                                                ? parseFloat(order.total_amount).toLocaleString() 
+                                                : (order.total_amount || 0).toLocaleString()}</td>
                                             <td>
                                                 <span className={`badge ${order.payment_status === 'paid' ? 'badge-success' : 'badge-warning'}`}>
                                                     {order.payment_status}
