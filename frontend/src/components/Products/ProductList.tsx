@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ProductAPI } from '../../api/api';
 import './ProductList.css';
@@ -47,36 +48,37 @@ const ProductList: React.FC = () => {
     const [error, setError] = useState<string>('');
     const [success, setSuccess] = useState<string>('');
 
+    const fetchData = async (): Promise<void> => {
+        setLoading(true);
+        setError('');
+        setSuccess('');
+        try {
+            const [productsRes, flavoursRes, sizesRes] = await Promise.all([
+                ProductAPI.getAll(),
+                ProductAPI.getFlavours(),
+                ProductAPI.getPackSizes()
+            ]);
+            setProducts((productsRes.data || []) as Product[]);
+            setFlavours((flavoursRes.data || []) as Flavour[]);
+            setPackSizes((sizesRes.data || []) as PackSize[]);
+        } catch (err) {
+            console.error('Error fetching data:', err);
+            setError('Failed to load data');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         let isMounted = true;
-        const fetchData = async (): Promise<void> => {
-            setLoading(true);
-            setError('');
-            setSuccess('');
-            try {
-                const [productsRes, flavoursRes, sizesRes] = await Promise.all([
-                    ProductAPI.getAll(),
-                    ProductAPI.getFlavours(),
-                    ProductAPI.getPackSizes()
-                ]);
-                if (isMounted) {
-                    setProducts((productsRes.data || []) as Product[]);
-                    setFlavours((flavoursRes.data || []) as Flavour[]);
-                    setPackSizes((sizesRes.data || []) as PackSize[]);
-                }
-            } catch (err) {
-                if (isMounted) {
-                    console.error('Error fetching data:', err);
-                    setError('Failed to load data');
-                }
-            } finally {
-                if (isMounted) {
-                    setLoading(false);
-                }
+
+        const loadData = async (): Promise<void> => {
+            if (isMounted) {
+                await fetchData();
             }
         };
 
-        fetchData();
+        loadData();
 
         return () => {
             isMounted = false;
@@ -104,29 +106,40 @@ const ProductList: React.FC = () => {
                     unit_price: formData.unit_price
                 });
                 successMessage = `✅ Product updated successfully! (${editingProduct.flavour_name} - ${editingProduct.size_name})`;
+                
+                setProducts((prevProducts: Product[]) =>
+                    prevProducts.map((p: Product) =>
+                        p.product_id === editingProduct.product_id
+                            ? { ...p, unit_price: formData.unit_price }
+                            : p
+                    )
+                );
             } else {
-                // Check if flavour and size are selected
                 if (!formData.flavour_id || !formData.size_id) {
                     setError('❌ Please select both flavour and size.');
                     setLoading(false);
                     return;
                 }
                 
-                await ProductAPI.create({
+                const response = await ProductAPI.create({
                     flavour_id: Number(formData.flavour_id),
                     size_id: Number(formData.size_id),
                     unit_price: Number(formData.unit_price) || 0
                 });
                 
-                // Get the flavour and size names for the success message
-                const flavour = flavours.find(f => f.flavour_id === formData.flavour_id);
-                const size = packSizes.find(s => s.size_id === formData.size_id);
+                const flavour = flavours.find((f: Flavour) => f.flavour_id === formData.flavour_id);
+                const size = packSizes.find((s: PackSize) => s.size_id === formData.size_id);
                 successMessage = `✅ Product added successfully! (${flavour?.flavour_name || ''} - ${size?.size_name || ''})`;
+                
+                if (response.data?.product) {
+                    setProducts((prev: Product[]) => [...prev, response.data.product as Product]);
+                } else {
+                    await fetchData();
+                }
             }
             
             setSuccess(successMessage);
             
-            // Auto-hide success message after 3 seconds
             setTimeout(() => {
                 setSuccess('');
             }, 3000);
@@ -138,7 +151,10 @@ const ProductList: React.FC = () => {
                 size_id: 0,
                 unit_price: 0
             });
-            await fetchData();
+            
+            if (!editingProduct) {
+                await fetchData();
+            }
         } catch (err: unknown) {
             const apiError = err as ApiError;
             console.error('❌ Error:', apiError);
@@ -166,15 +182,18 @@ const ProductList: React.FC = () => {
     };
 
     const handleDelete = async (productId: number, productName: string): Promise<void> => {
-        if (!window.confirm(`Are you sure you want to delete ${productName}?`)) return;
+        if (!window.confirm(`Are you sure you want to delete ${productName}?`)) {
+            return;
+        }
         try {
             await ProductAPI.delete(productId);
             setSuccess(`✅ Product "${productName}" deleted successfully!`);
             setTimeout(() => setSuccess(''), 3000);
-            const [productsRes] = await Promise.all([
-                ProductAPI.getAll()
-            ]);
-            setProducts((productsRes.data || []) as Product[]);
+            // ✅ FIX: Properly filter products - returns Product[]
+            setProducts((prev: Product[]) => {
+                const filtered: Product[] = prev.filter((p: Product) => p.product_id !== productId);
+                return filtered;
+            });
         } catch (err: unknown) {
             const apiError = err as ApiError;
             alert(apiError.response?.data?.error || 'Failed to delete product');
@@ -193,7 +212,7 @@ const ProductList: React.FC = () => {
         setSuccess('');
     };
 
-    const filteredProducts = products.filter((product: Product) =>
+    const filteredProducts: Product[] = products.filter((product: Product) =>
         product.flavour_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.size_name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -213,14 +232,13 @@ const ProductList: React.FC = () => {
             </div>
 
             {error && <div className="error-message">{error}</div>}
-            {success && <div className="success-message">{success}</div>}
 
             <div className="search-bar">
                 <input
                     type="text"
                     placeholder="Search by flavour or size..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                     className="search-input"
                 />
             </div>
@@ -229,6 +247,10 @@ const ProductList: React.FC = () => {
                 <div className="modal-overlay">
                     <div className="modal-content">
                         <h2>{editingProduct ? '✏️ Edit Product' : '➕ Add New Product'}</h2>
+                        
+                        {success && <div className="success-message">{success}</div>}
+                        {error && <div className="error-message">{error}</div>}
+                        
                         <form onSubmit={handleSubmit}>
                             {!editingProduct && (
                                 <>
@@ -361,7 +383,3 @@ const ProductList: React.FC = () => {
 };
 
 export default ProductList;
-
-function fetchData() {
-    throw new Error('Function not implemented.');
-}
