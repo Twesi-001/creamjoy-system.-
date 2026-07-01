@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { AuthAPI } from '../../api/api';
 import './Login.css';
@@ -23,18 +24,18 @@ const Login: React.FC = () => {
             localStorage.setItem('user', JSON.stringify(user));
             window.dispatchEvent(new Event('user-updated'));
             navigate('/');
-        } catch (err: any) {
+        } catch (err: unknown) {
             // Professional, company-appropriate error messages.
             // The user stays on the login page; no redirect occurs on failure.
-            if (err.response?.status === 401) {
+            if (axios.isAxiosError(err) && err.response?.status === 401) {
                 setError('Invalid email or password. Please check your credentials and try again.');
-            } else if (err.response?.status === 403) {
+            } else if (axios.isAxiosError(err) && err.response?.status === 403) {
                 setError('Your account has been suspended. Please contact your system administrator.');
-            } else if (err.response?.status === 404) {
+            } else if (axios.isAxiosError(err) && err.response?.status === 404) {
                 setError('No account was found with this email address. Please contact support.');
-            } else if (err.response?.status === 500) {
+            } else if (axios.isAxiosError(err) && err.response?.status === 500) {
                 setError('We are experiencing a technical issue. Please try again in a few minutes.');
-            } else if (err.code === 'ERR_NETWORK' || err.message?.includes('Network')) {
+            } else if (axios.isAxiosError(err) && (err.code === 'ERR_NETWORK' || err.message?.includes('Network'))) {
                 setError('Unable to reach the server. Please check your internet connection and try again.');
             } else {
                 setError('Something went wrong while signing in. Please try again or contact support.');
