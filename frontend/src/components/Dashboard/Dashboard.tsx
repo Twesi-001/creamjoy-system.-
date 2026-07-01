@@ -106,6 +106,12 @@ interface Product {
     [key: string]: unknown;
 }
 
+interface LowStockItem {
+    product_name: string;
+    quantity: number;
+    reorder_level: number;
+}
+
 // Metric data interface
 interface MetricData {
     todayBatches: number;
@@ -186,6 +192,7 @@ const Dashboard: React.FC = () => {
     });
     const [loading, setLoading] = useState<boolean>(true);
     const [recentBatches, setRecentBatches] = useState<Batch[]>([]);
+    const [lowStockItems, setLowStockItems] = useState<LowStockItem[]>([]);
     const [chartData, setChartData] = useState<ChartData | null>(null);
     const [deliveryChartData, setDeliveryChartData] = useState<ChartData | null>(null);
     const [revenueChartData, setRevenueChartData] = useState<ChartData | null>(null);
@@ -284,9 +291,11 @@ const Dashboard: React.FC = () => {
                 (delivery: Delivery) => delivery.status === 'pending'
             ).length;
 
-            const lowStock = inventory.filter(
-                (item: InventoryItem) => item.low_stock === true
-            ).length;
+            const lowStockRecords = inventory.filter(
+                (item: InventoryItem) => item.low_stock === true || item.quantity <= item.reorder_level
+            );
+
+            const lowStock = lowStockRecords.length;
 
             const totalOrders = orders.length;
             const totalCustomers = customers.length;
@@ -309,6 +318,16 @@ const Dashboard: React.FC = () => {
 
             // Set recent data
             setRecentBatches(batches.slice(0, 5));
+            setLowStockItems(
+                lowStockRecords.slice(0, 6).map((item: InventoryItem) => ({
+                    product_name:
+                        (item as { product_name?: string; name?: string }).product_name ||
+                        (item as { product_name?: string; name?: string }).name ||
+                        `Product #${item.product_id}`,
+                    quantity: item.quantity,
+                    reorder_level: item.reorder_level
+                }))
+            );
 
             // Prepare chart data
             const last7Days: string[] = getLast7Days();
@@ -540,6 +559,27 @@ const Dashboard: React.FC = () => {
                         <p>No chart data available</p>
                     )}
                 </div>
+
+                {showRevenueInsights && (
+                    <div className="chart-section low-stock-section">
+                        <h3>Low Stock Alerts</h3>
+                        {lowStockItems.length > 0 ? (
+                            <ul className="low-stock-list">
+                                {lowStockItems.map((item) => (
+                                    <li key={`${item.product_name}-${item.quantity}`}>
+                                        <div>
+                                            <strong>{item.product_name}</strong>
+                                            <span>Reorder level: {item.reorder_level}</span>
+                                        </div>
+                                        <span className="badge badge-warning">Qty {item.quantity}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p>No low stock items found.</p>
+                        )}
+                    </div>
+                )}
 
                 <div className="recent-section">
                     <h3>Recent Batches</h3>

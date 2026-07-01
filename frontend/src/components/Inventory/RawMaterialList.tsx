@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { RawMaterialAPI, SupplierAPI } from '../../api/api';
 import './RawMaterialList.css';
 
@@ -190,24 +190,75 @@ const RawMaterialList: React.FC = () => {
         return material.current_stock <= material.minimum_stock;
     };
 
+    const summary = useMemo(() => ({
+        totalMaterials: materials.length,
+        lowStockMaterials: materials.filter((material) => isLowStock(material)).length,
+        supplierCount: suppliers.length
+    }), [materials, suppliers]);
+
+    const openCreateForm = (): void => {
+        setEditingMaterial(null);
+        setShowForm(true);
+    };
+
     return (
         <div className="raw-material-list">
             <div className="page-header">
-                <h1>📦 Raw Materials</h1>
-                <button className="btn-primary" onClick={() => setShowForm(true)}>
-                    + Add Material
-                </button>
+                <div className="page-header-text">
+                    <h1>
+                        <i className="bi bi-box-seam" aria-hidden="true"></i>
+                        Raw Materials
+                    </h1>
+                    <p>Manage stock inputs, supply levels, and inventory readiness from one place.</p>
+                </div>
+                <div className="page-header-actions">
+                    <div className="page-header-stats">
+                        <span className="stat-pill">
+                            <i className="bi bi-boxes" aria-hidden="true"></i>
+                            {summary.totalMaterials} materials
+                        </span>
+                        <span className="stat-pill stat-pill-warning">
+                            <i className="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                            {summary.lowStockMaterials} low stock
+                        </span>
+                        <span className="stat-pill">
+                            <i className="bi bi-building" aria-hidden="true"></i>
+                            {summary.supplierCount} suppliers
+                        </span>
+                    </div>
+                    <button className="btn-primary" onClick={openCreateForm}>
+                        <i className="bi bi-plus-circle" aria-hidden="true"></i>
+                        Add Material
+                    </button>
+                </div>
             </div>
 
-            {error && <div className="error-message">{error}</div>}
+            {error && (
+                <div className="error-message" role="alert">
+                    <i className="bi bi-exclamation-circle" aria-hidden="true"></i>
+                    <span>{error}</span>
+                </div>
+            )}
 
             {showForm && (
                 <div className="modal-overlay">
                     <div className="modal-content">
-                        <h2>{editingMaterial ? 'Edit Material' : 'Add New Material'}</h2>
+                        <div className="modal-header">
+                            <div>
+                                <h2>
+                                    <i className={`bi ${editingMaterial ? 'bi-pencil-square' : 'bi-plus-circle'}`} aria-hidden="true"></i>
+                                    {editingMaterial ? 'Edit Material' : 'Add New Material'}
+                                </h2>
+                                <p className="modal-subtext">
+                                    {editingMaterial
+                                        ? 'Update the raw material details and stock settings.'
+                                        : 'Create a raw material record that will appear in the inventory list.'}
+                                </p>
+                            </div>
+                        </div>
                         <form onSubmit={handleSubmit}>
                             <div className="form-group">
-                                <label>Material Name *</label>
+                                <label><i className="bi bi-tag" aria-hidden="true"></i> Material Name *</label>
                                 <input
                                     type="text"
                                     name="material_name"
@@ -218,7 +269,7 @@ const RawMaterialList: React.FC = () => {
                             </div>
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label>Unit *</label>
+                                    <label><i className="bi bi-rulers" aria-hidden="true"></i> Unit *</label>
                                     <input
                                         type="text"
                                         name="unit"
@@ -229,7 +280,7 @@ const RawMaterialList: React.FC = () => {
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label>Cost per Unit (UGX) *</label>
+                                    <label><i className="bi bi-cash-coin" aria-hidden="true"></i> Cost per Unit (UGX) *</label>
                                     <input
                                         type="number"
                                         name="cost_per_unit_ugx"
@@ -242,7 +293,7 @@ const RawMaterialList: React.FC = () => {
                             </div>
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label>Current Stock</label>
+                                    <label><i className="bi bi-boxes" aria-hidden="true"></i> Current Stock</label>
                                     <input
                                         type="number"
                                         name="current_stock"
@@ -252,7 +303,7 @@ const RawMaterialList: React.FC = () => {
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label>Minimum Stock *</label>
+                                    <label><i className="bi bi-exclamation-triangle" aria-hidden="true"></i> Minimum Stock *</label>
                                     <input
                                         type="number"
                                         name="minimum_stock"
@@ -265,7 +316,7 @@ const RawMaterialList: React.FC = () => {
                             </div>
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label>Supplier</label>
+                                    <label><i className="bi bi-building" aria-hidden="true"></i> Supplier</label>
                                     <select
                                         name="supplier_id"
                                         value={formData.supplier_id}
@@ -280,7 +331,7 @@ const RawMaterialList: React.FC = () => {
                                     </select>
                                 </div>
                                 <div className="form-group">
-                                    <label>Last Restocked</label>
+                                    <label><i className="bi bi-calendar-event" aria-hidden="true"></i> Last Restocked</label>
                                     <input
                                         type="date"
                                         name="last_restocked"
@@ -303,18 +354,21 @@ const RawMaterialList: React.FC = () => {
             )}
 
             {loading ? (
-                <div className="loading">Loading materials...</div>
+                <div className="state-panel state-loading">
+                    <i className="bi bi-arrow-repeat spin" aria-hidden="true"></i>
+                    <p>Loading raw materials...</p>
+                </div>
             ) : (
                 <div className="table-container">
                     <table className="data-table">
                         <thead>
                             <tr>
-                                <th>Material</th>
-                                <th>Unit</th>
-                                <th>Cost/Unit (UGX)</th>
-                                <th>Current Stock</th>
-                                <th>Min Stock</th>
-                                <th>Supplier</th>
+                                <th><i className="bi bi-tag" aria-hidden="true"></i> Material</th>
+                                <th><i className="bi bi-rulers" aria-hidden="true"></i> Unit</th>
+                                <th><i className="bi bi-cash-coin" aria-hidden="true"></i> Cost/Unit</th>
+                                <th><i className="bi bi-boxes" aria-hidden="true"></i> Current Stock</th>
+                                <th><i className="bi bi-exclamation-triangle" aria-hidden="true"></i> Min Stock</th>
+                                <th><i className="bi bi-building" aria-hidden="true"></i> Supplier</th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
@@ -323,7 +377,7 @@ const RawMaterialList: React.FC = () => {
                             {materials.length === 0 ? (
                                 <tr>
                                     <td colSpan={8} className="empty-state">
-                                        No materials found. Click "Add Material" to create one.
+                                        No materials found. Click Add Material to create one.
                                     </td>
                                 </tr>
                             ) : (
@@ -337,9 +391,9 @@ const RawMaterialList: React.FC = () => {
                                         <td>{material.supplier_id ? getSupplierName(material.supplier_id) : 'N/A'}</td>
                                         <td>
                                             {isLowStock(material) ? (
-                                                <span className="badge badge-danger">⚠️ Low Stock</span>
+                                                <span className="badge badge-danger">Low Stock</span>
                                             ) : (
-                                                <span className="badge badge-success">✅ In Stock</span>
+                                                <span className="badge badge-success">In Stock</span>
                                             )}
                                         </td>
                                         <td>
@@ -348,26 +402,26 @@ const RawMaterialList: React.FC = () => {
                                                 onClick={() => handleStockUpdate(material.material_id, 'add')}
                                                 title="Add Stock"
                                             >
-                                                ➕
+                                                <i className="bi bi-plus-lg" aria-hidden="true"></i>
                                             </button>
                                             <button 
                                                 className="btn-sm btn-remove"
                                                 onClick={() => handleStockUpdate(material.material_id, 'subtract')}
                                                 title="Remove Stock"
                                             >
-                                                ➖
+                                                <i className="bi bi-dash-lg" aria-hidden="true"></i>
                                             </button>
                                             <button 
                                                 className="btn-sm btn-edit"
                                                 onClick={() => handleEdit(material)}
                                             >
-                                                ✏️
+                                                <i className="bi bi-pencil-square" aria-hidden="true"></i>
                                             </button>
                                             <button 
                                                 className="btn-sm btn-delete"
                                                 onClick={() => handleDelete(material.material_id)}
                                             >
-                                                🗑️
+                                                <i className="bi bi-trash" aria-hidden="true"></i>
                                             </button>
                                         </td>
                                     </tr>

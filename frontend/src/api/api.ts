@@ -292,6 +292,8 @@ export const CustomerAPI = {
         api.get('/customers'),
     getOne: (id: number): Promise<{ data: unknown }> =>
         api.get(`/customers/${id}`),
+    create: (data: { name: string; location?: string; phone?: string; customer_type?: string; notes?: string }): Promise<{ data: ApiResponse }> =>
+        api.post('/customers', data),
 };
 
 // ============ EXPENDITURE API ============
