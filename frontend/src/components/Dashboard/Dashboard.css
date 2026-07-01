@@ -143,6 +143,15 @@
     margin-bottom: 24px;
 }
 
+/* ---------- Revenue / Delivery Insights ---------- */
+
+.dashboard-insights {
+    display: grid;
+    grid-template-columns: 1.4fr 0.9fr;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
 /* ---------- Chart Cards ---------- */
 
 .dashboard-content {
@@ -183,6 +192,14 @@
 
 .revenue-chart {
     grid-column: 1 / -1;
+}
+
+.dashboard-insights .chart-section {
+    min-height: 320px;
+}
+
+.dashboard-insights .chart-section canvas {
+    max-height: 280px;
 }
 
 /* ---------- Recent Tables ---------- */
@@ -319,6 +336,10 @@
         grid-template-columns: 1fr;
     }
 
+    .dashboard-insights {
+        grid-template-columns: 1fr;
+    }
+
     .role-chart {
         max-width: 100%;
     }
@@ -334,6 +355,10 @@
 
 @media (max-width: 480px) {
     .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-insights {
         grid-template-columns: 1fr;
     }
 

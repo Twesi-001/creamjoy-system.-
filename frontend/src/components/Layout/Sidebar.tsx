@@ -28,7 +28,6 @@ const ROLE_MENU_ITEMS: Record<UserRole, MenuItem[]> = {
         { path: '/suppliers', icon: 'bi-building', label: 'Suppliers', roles: ['admin'] },
         { path: '/customers', icon: 'bi-people', label: 'Customers', roles: ['admin'] },
         { path: '/credit', icon: 'bi-wallet2', label: 'Credit Accounts', roles: ['admin'] },
-        { path: '/admin', icon: 'bi-gear', label: 'Admin Panel', roles: ['admin'] },
         { path: '/expenditures/new', icon: 'bi-receipt', label: 'Expenditure', roles: ['admin'] },
     ],
     supervisor: [
@@ -72,6 +71,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
     const [role, setRole] = useState<UserRole>('delivery');
     const [userName, setUserName] = useState<string>('User');
     const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth <= 768);
+
+    const getRoleLabel = (currentRole: UserRole): string => {
+        const labels: Record<UserRole, string> = {
+            admin: 'System Admin',
+            supervisor: 'Supervisor',
+            production: 'Production',
+            delivery: 'Delivery',
+            sales: 'Sales',
+            maintenance: 'Maintenance'
+        };
+
+        return labels[currentRole] || currentRole;
+    };
 
     useEffect(() => {
         const handleResize = () => {
@@ -123,7 +135,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
                     <i className="bi bi-person-circle sidebar-user-avatar" aria-hidden="true"></i>
                     <div className="sidebar-user-info">
                         <span className="sidebar-user-name">{userName}</span>
-                        <span className={`sidebar-user-role role-${role}`}>{role}</span>
+                        <span className={`sidebar-user-role role-${role}`}>{getRoleLabel(role)}</span>
                     </div>
                 </div>
 
@@ -147,10 +159,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
                 </ul>
 
                 <div className="sidebar-footer">
-                    <span className="footer-role">
-                        <i className="bi bi-person-circle" aria-hidden="true"></i>
-                        {role}
-                    </span>
+                    {role === 'admin' && (
+                        <NavLink
+                            to="/admin"
+                            className={({ isActive }) => `sidebar-link sidebar-admin-link ${isActive ? 'active' : ''}`}
+                            onClick={handleLinkClick}
+                        >
+                            <span className="link-icon">
+                                <i className="bi bi-gear" aria-hidden="true"></i>
+                            </span>
+                            <span className="link-label">Admin Panel</span>
+                        </NavLink>
+                    )}
                 </div>
             </nav>
         </>

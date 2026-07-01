@@ -13,7 +13,7 @@ import {
     LineElement,
     Filler
 } from 'chart.js';
-import { Bar } from 'react-chartjs-2';
+import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import {
     BatchAPI,
     OrderAPI,
@@ -124,8 +124,13 @@ interface ChartData {
     datasets: {
         label: string;
         data: number[];
-        backgroundColor: string;
-        borderRadius: number;
+        backgroundColor: string | string[];
+        borderColor?: string;
+        borderRadius?: number;
+        borderWidth?: number;
+        fill?: boolean;
+        tension?: number;
+        pointRadius?: number;
     }[];
 }
 
@@ -135,7 +140,29 @@ interface DailyBatch {
     count: number;
 }
 
+const ROLE_LABELS: Record<string, string> = {
+    admin: 'System Admin',
+    sales: 'Sales',
+    supervisor: 'Supervisor',
+    production: 'Production',
+    delivery: 'Delivery',
+    maintenance: 'Maintenance'
+};
+
 const Dashboard: React.FC = () => {
+    const [userRole, setUserRole] = useState<string>(() => {
+        const userStr = localStorage.getItem('user');
+        if (!userStr) {
+            return 'delivery';
+        }
+
+        try {
+            const parsed = JSON.parse(userStr) as { role?: string };
+            return parsed.role || 'delivery';
+        } catch {
+            return 'delivery';
+        }
+    });
     const [metrics, setMetrics] = useState<MetricData>({
         todayBatches: 0,
         pendingDeliveries: 0,
@@ -149,6 +176,11 @@ const Dashboard: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(true);
     const [recentBatches, setRecentBatches] = useState<Batch[]>([]);
     const [chartData, setChartData] = useState<ChartData | null>(null);
+    const [deliveryChartData, setDeliveryChartData] = useState<ChartData | null>(null);
+    const [revenueChartData, setRevenueChartData] = useState<ChartData | null>(null);
+
+    const normalizedRole = userRole.toLowerCase();
+    const showRevenueInsights = normalizedRole === 'admin' || normalizedRole === 'sales';
 
     // Helper function to get last 7 days
     const getLast7Days = (): string[] => {
@@ -173,6 +205,33 @@ const Dashboard: React.FC = () => {
         };
         return statusMap[status.toLowerCase()] || 'badge-secondary';
     };
+
+    useEffect(() => {
+        const updateUserRole = () => {
+            const userStr = localStorage.getItem('user');
+            if (!userStr) {
+                setUserRole('delivery');
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(userStr) as { role?: string };
+                setUserRole(parsed.role || 'delivery');
+            } catch {
+                setUserRole('delivery');
+            }
+        };
+
+        window.addEventListener('storage', updateUserRole);
+        window.addEventListener('user-updated', updateUserRole);
+
+        updateUserRole();
+
+        return () => {
+            window.removeEventListener('storage', updateUserRole);
+            window.removeEventListener('user-updated', updateUserRole);
+        };
+    }, []);
 
     const fetchDashboardData = useCallback(async (): Promise<void> => {
         try {
@@ -247,6 +306,19 @@ const Dashboard: React.FC = () => {
                 count: batches.filter((batch: Batch) => batch.batch_date === date).length
             }));
 
+            const deliveryStatusData = [
+                { label: 'Pending', count: deliveries.filter((delivery: Delivery) => delivery.status === 'pending').length, color: '#F59E0B' },
+                { label: 'Dispatched', count: deliveries.filter((delivery: Delivery) => delivery.status === 'dispatched').length, color: '#1D9E75' },
+                { label: 'Delivered', count: deliveries.filter((delivery: Delivery) => delivery.status === 'delivered').length, color: '#2563EB' }
+            ].filter((item) => item.count > 0);
+
+            const revenueByDay = last7Days.map((date: string) => ({
+                date,
+                revenue: orders
+                    .filter((order: Order) => order.order_date.split('T')[0] === date)
+                    .reduce((sum: number, order: Order) => sum + (order.total_amount || 0), 0)
+            }));
+
             console.log('Daily Batches:', dailyBatches);
 
             setChartData({
@@ -257,6 +329,34 @@ const Dashboard: React.FC = () => {
                         data: dailyBatches.map((d: DailyBatch) => d.count),
                         backgroundColor: '#1D9E75',
                         borderRadius: 4,
+                    }
+                ]
+            });
+
+            setDeliveryChartData({
+                labels: deliveryStatusData.map((item) => item.label),
+                datasets: [
+                    {
+                        label: 'Deliveries',
+                        data: deliveryStatusData.map((item) => item.count),
+                        backgroundColor: deliveryStatusData.map((item) => item.color),
+                        borderWidth: 0
+                    }
+                ]
+            });
+
+            setRevenueChartData({
+                labels: revenueByDay.map((item) => item.date),
+                datasets: [
+                    {
+                        label: 'Revenue',
+                        data: revenueByDay.map((item) => item.revenue),
+                        backgroundColor: 'rgba(29, 158, 117, 0.15)',
+                        borderColor: '#1D9E75',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.38,
+                        pointRadius: 3
                     }
                 ]
             });
@@ -277,6 +377,9 @@ const Dashboard: React.FC = () => {
             <div className="dashboard-header">
                 <h1>Dashboard</h1>
                 <p>Welcome to the CreamJoy Management System</p>
+                {showRevenueInsights && (
+                    <p className="role-message">{ROLE_LABELS[normalizedRole] || userRole} view with revenue and delivery insights.</p>
+                )}
             </div>
 
             <div className="metrics-grid">
@@ -304,7 +407,70 @@ const Dashboard: React.FC = () => {
                     icon="bi bi-cash-coin"
                     color="info"
                 />
+                {showRevenueInsights && (
+                    <MetricCard
+                        title="Revenue Collected (7 Days)"
+                        value={`UGX ${metrics.totalRevenue.toLocaleString()}`}
+                        icon="bi bi-graph-up-arrow"
+                        color="success"
+                    />
+                )}
             </div>
+
+            {showRevenueInsights && (
+                <div className="dashboard-insights">
+                    <div className="chart-section revenue-chart">
+                        <h3>Revenue Trend (Last 7 Days)</h3>
+                        {loading ? (
+                            <p>Loading revenue data...</p>
+                        ) : revenueChartData ? (
+                            <Line
+                                data={revenueChartData}
+                                options={{
+                                    responsive: true,
+                                    plugins: {
+                                        legend: {
+                                            display: false,
+                                        },
+                                    },
+                                    scales: {
+                                        y: {
+                                            beginAtZero: true,
+                                            ticks: {
+                                                callback: (value) => `UGX ${Number(value).toLocaleString()}`,
+                                            },
+                                        },
+                                    },
+                                }}
+                            />
+                        ) : (
+                            <p>No revenue data available</p>
+                        )}
+                    </div>
+
+                    <div className="chart-section role-chart">
+                        <h3>Delivery Status</h3>
+                        {loading ? (
+                            <p>Loading delivery data...</p>
+                        ) : deliveryChartData ? (
+                            <Doughnut
+                                data={deliveryChartData}
+                                options={{
+                                    responsive: true,
+                                    plugins: {
+                                        legend: {
+                                            position: 'bottom',
+                                        },
+                                    },
+                                    cutout: '65%'
+                                }}
+                            />
+                        ) : (
+                            <p>No delivery data available</p>
+                        )}
+                    </div>
+                </div>
+            )}
 
             <div className="dashboard-content">
                 <div className="chart-section">
