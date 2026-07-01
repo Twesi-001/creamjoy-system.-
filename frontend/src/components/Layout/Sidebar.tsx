@@ -19,7 +19,7 @@ interface SidebarProps {
 const ROLE_MENU_ITEMS: Record<UserRole, MenuItem[]> = {
     admin: [
         { path: '/', icon: 'bi-speedometer2', label: 'Dashboard', roles: ['admin'] },
-        { path: '/batches', icon: 'bi-factory', label: 'Batches', roles: ['admin'] },
+        { path: '/batches', icon: 'bi-box-seam', label: 'Batches', roles: ['admin'] },
         { path: '/products', icon: 'bi-box-seam', label: 'Products', roles: ['admin'] },
         { path: '/orders', icon: 'bi-cart-check', label: 'Orders', roles: ['admin'] },
         { path: '/deliveries', icon: 'bi-truck', label: 'Deliveries', roles: ['admin'] },
@@ -32,7 +32,7 @@ const ROLE_MENU_ITEMS: Record<UserRole, MenuItem[]> = {
     ],
     supervisor: [
         { path: '/', icon: 'bi-speedometer2', label: 'Dashboard', roles: ['supervisor'] },
-        { path: '/batches', icon: 'bi-factory', label: 'Batches', roles: ['supervisor'] },
+        { path: '/batches', icon: 'bi-box-seam', label: 'Batches', roles: ['supervisor'] },
         { path: '/products', icon: 'bi-box-seam', label: 'Products', roles: ['supervisor'] },
         { path: '/orders', icon: 'bi-cart-check', label: 'Orders', roles: ['supervisor'] },
         { path: '/deliveries', icon: 'bi-truck', label: 'Deliveries', roles: ['supervisor'] },
@@ -45,7 +45,7 @@ const ROLE_MENU_ITEMS: Record<UserRole, MenuItem[]> = {
     ],
     production: [
         { path: '/', icon: 'bi-speedometer2', label: 'Dashboard', roles: ['production'] },
-        { path: '/batches', icon: 'bi-factory', label: 'Batches', roles: ['production'] },
+        { path: '/batches', icon: 'bi-box-seam', label: 'Batches', roles: ['production'] },
         { path: '/products', icon: 'bi-box-seam', label: 'Products', roles: ['production'] },
         { path: '/inventory', icon: 'bi-boxes', label: 'Inventory', roles: ['production'] },
         { path: '/raw-materials', icon: 'bi-archive', label: 'Raw Materials', roles: ['production'] },

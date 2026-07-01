@@ -375,11 +375,21 @@ const Dashboard: React.FC = () => {
     return (
         <div className="dashboard">
             <div className="dashboard-header">
-                <h1>Dashboard</h1>
-                <p>Welcome to the CreamJoy Management System</p>
-                {showRevenueInsights && (
-                    <p className="role-message">{ROLE_LABELS[normalizedRole] || userRole} view with revenue and delivery insights.</p>
-                )}
+                <div>
+                    <div className="header-top">
+                        <h1>
+                            <i className="bi bi-speedometer2" aria-hidden="true"></i>
+                            <span>Dashboard</span>
+                        </h1>
+                        {showRevenueInsights && (
+                            <span className="role-tag">{ROLE_LABELS[normalizedRole] || userRole}</span>
+                        )}
+                    </div>
+                    <p className="dashboard-welcome">Welcome to the CreamJoy Management System</p>
+                    {showRevenueInsights && (
+                        <p className="role-message">Revenue and delivery insights are enabled for your role.</p>
+                    )}
+                </div>
             </div>
 
             <div className="metrics-grid">
@@ -422,27 +432,33 @@ const Dashboard: React.FC = () => {
                     <div className="chart-section revenue-chart">
                         <h3>Revenue Trend (Last 7 Days)</h3>
                         {loading ? (
-                            <p>Loading revenue data...</p>
+                            <div className="loading-state">
+                                <div className="spinner" aria-hidden="true"></div>
+                                <p>Loading revenue data...</p>
+                            </div>
                         ) : revenueChartData ? (
-                            <Line
-                                data={revenueChartData}
-                                options={{
-                                    responsive: true,
-                                    plugins: {
-                                        legend: {
-                                            display: false,
-                                        },
-                                    },
-                                    scales: {
-                                        y: {
-                                            beginAtZero: true,
-                                            ticks: {
-                                                callback: (value) => `UGX ${Number(value).toLocaleString()}`,
+                            <div className="chart-container">
+                                <Line
+                                    data={revenueChartData}
+                                    options={{
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        plugins: {
+                                            legend: {
+                                                display: false,
                                             },
                                         },
-                                    },
-                                }}
-                            />
+                                        scales: {
+                                            y: {
+                                                beginAtZero: true,
+                                                ticks: {
+                                                    callback: (value) => `UGX ${Number(value).toLocaleString()}`,
+                                                },
+                                            },
+                                        },
+                                    }}
+                                />
+                            </div>
                         ) : (
                             <p>No revenue data available</p>
                         )}
@@ -451,20 +467,26 @@ const Dashboard: React.FC = () => {
                     <div className="chart-section role-chart">
                         <h3>Delivery Status</h3>
                         {loading ? (
-                            <p>Loading delivery data...</p>
+                            <div className="loading-state">
+                                <div className="spinner" aria-hidden="true"></div>
+                                <p>Loading delivery data...</p>
+                            </div>
                         ) : deliveryChartData ? (
-                            <Doughnut
-                                data={deliveryChartData}
-                                options={{
-                                    responsive: true,
-                                    plugins: {
-                                        legend: {
-                                            position: 'bottom',
+                            <div className="chart-container">
+                                <Doughnut
+                                    data={deliveryChartData}
+                                    options={{
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        plugins: {
+                                            legend: {
+                                                position: 'bottom',
+                                            },
                                         },
-                                    },
-                                    cutout: '65%'
-                                }}
-                            />
+                                        cutout: '65%'
+                                    }}
+                                />
+                            </div>
                         ) : (
                             <p>No delivery data available</p>
                         )}
@@ -476,27 +498,33 @@ const Dashboard: React.FC = () => {
                 <div className="chart-section">
                     <h3>Production Activity (Last 7 Days)</h3>
                     {loading ? (
-                        <p>Loading chart data...</p>
+                        <div className="loading-state">
+                            <div className="spinner" aria-hidden="true"></div>
+                            <p>Loading chart data...</p>
+                        </div>
                     ) : chartData ? (
-                        <Bar
-                            data={chartData}
-                            options={{
-                                responsive: true,
-                                plugins: {
-                                    legend: {
-                                        display: false,
-                                    },
-                                },
-                                scales: {
-                                    y: {
-                                        beginAtZero: true,
-                                        ticks: {
-                                            stepSize: 1,
+                        <div className="chart-container">
+                            <Bar
+                                data={chartData}
+                                options={{
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: {
+                                            display: false,
                                         },
                                     },
-                                },
-                            }}
-                        />
+                                    scales: {
+                                        y: {
+                                            beginAtZero: true,
+                                            ticks: {
+                                                stepSize: 1,
+                                            },
+                                        },
+                                    },
+                                }}
+                            />
+                        </div>
                     ) : (
                         <p>No chart data available</p>
                     )}

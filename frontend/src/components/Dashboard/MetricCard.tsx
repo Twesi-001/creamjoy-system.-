@@ -23,7 +23,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
             <div className="metric-icon">
                 <i className={icon} aria-hidden="true"></i>
             </div>
-            <div className="metric-body">
+            <div className="metric-content">
                 <span className="metric-value">{value}</span>
                 <span className="metric-title">
                     {titleIcon && <i className={`metric-title-icon ${titleIcon}`} aria-hidden="true"></i>}
