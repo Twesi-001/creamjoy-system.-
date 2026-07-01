@@ -18,6 +18,7 @@ interface SidebarProps {
 
 const ROLE_MENU_ITEMS: Record<UserRole, MenuItem[]> = {
     admin: [
+        { path: '/admin', icon: 'bi-gear', label: 'Admin Panel', roles: ['admin'] },
         { path: '/', icon: 'bi-speedometer2', label: 'Dashboard', roles: ['admin'] },
         { path: '/batches', icon: 'bi-box-seam', label: 'Batches', roles: ['admin'] },
         { path: '/products', icon: 'bi-box-seam', label: 'Products', roles: ['admin'] },
@@ -163,20 +164,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
                     ))}
                 </ul>
 
-                <div className="sidebar-footer">
-                    {role === 'admin' && (
-                        <NavLink
-                            to="/admin"
-                            className={({ isActive }) => `sidebar-link sidebar-admin-link ${isActive ? 'active' : ''}`}
-                            onClick={handleLinkClick}
-                        >
-                            <span className="link-icon">
-                                <i className="bi bi-gear" aria-hidden="true"></i>
-                            </span>
-                            <span className="link-label">Admin Panel</span>
-                        </NavLink>
-                    )}
-                </div>
             </nav>
         </>
     );
