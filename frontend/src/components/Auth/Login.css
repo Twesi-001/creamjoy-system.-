@@ -123,7 +123,7 @@
     letter-spacing: 0.2px;
 }
 
-/* Input wrapper with a leading Bootstrap Icon */
+/* Input wrapper with a trailing Bootstrap Icon */
 .input-with-icon {
     position: relative;
     display: flex;
@@ -132,7 +132,7 @@
 
 .input-with-icon .input-icon {
     position: absolute;
-    left: 14px;
+    right: 14px;
     color: var(--text-subtle);
     font-size: 1rem;
     pointer-events: none;
@@ -140,7 +140,7 @@
 
 .form-group input {
     width: 100%;
-    padding: 12px 14px 12px 40px;
+    padding: 12px 40px 12px 14px;
     border: 1.5px solid var(--border-default);
     border-radius: var(--radius-md);
     font-size: 0.95rem;
