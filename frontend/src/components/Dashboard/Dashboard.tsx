@@ -283,25 +283,25 @@ const Dashboard: React.FC = () => {
                 <MetricCard
                     title="Today's Batches"
                     value={metrics.todayBatches}
-                    icon="🏭"
+                    icon="bi bi-factory"
                     color="primary"
                 />
                 <MetricCard
                     title="Pending Deliveries"
                     value={metrics.pendingDeliveries}
-                    icon="🚚"
+                    icon="bi bi-truck"
                     color="warning"
                 />
                 <MetricCard
                     title="Low Stock Alerts"
                     value={metrics.lowStock}
-                    icon="⚠️"
+                    icon="bi bi-exclamation-triangle"
                     color="danger"
                 />
                 <MetricCard
                     title="Credit Outstanding"
                     value={`UGX ${metrics.creditOutstanding.toLocaleString()}`}
-                    icon="💰"
+                    icon="bi bi-cash-coin"
                     color="info"
                 />
             </div>
