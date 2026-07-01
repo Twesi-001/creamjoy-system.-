@@ -10,7 +10,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
 
     const toggleSidebar = () => {
-        setSidebarOpen(!sidebarOpen);
+        setSidebarOpen((prev) => !prev);
     };
 
     const closeSidebar = () => {
@@ -19,7 +19,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
     return (
         <div className="layout">
-            <Header onMenuToggle={toggleSidebar} />
+            <Header onMenuToggle={toggleSidebar} isSidebarOpen={sidebarOpen} />
             <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
             <main className={`main-content ${sidebarOpen ? 'sidebar-open' : ''}`}>
                 {children}
@@ -29,3 +29,4 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 };
 
 export default Layout;
+

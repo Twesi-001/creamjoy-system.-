@@ -30,6 +30,35 @@ interface ApiResponse<T = unknown> {
     message?: string;
 }
 
+export interface ProductData {
+    product_id: number;
+    flavour_id: number;
+    size_id: number;
+    flavour_name: string;
+    size_name: string;
+    unit_price: number;
+}
+
+export interface FlavourData {
+    flavour_id: number;
+    flavour_name: string;
+}
+
+export interface PackSizeData {
+    size_id: number;
+    size_name: string;
+}
+
+export interface ProductCreateData {
+    flavour_id: number;
+    size_id: number;
+    unit_price: number;
+}
+
+export interface ProductUpdateData {
+    unit_price: number;
+}
+
 interface BatchData {
     batch_number: string;
     batch_date: string;
@@ -38,7 +67,19 @@ interface BatchData {
     notes?: string;
 }
 
-interface OrderData {
+export interface OrderData {
+    order_id: number;
+    customer_id?: number;
+    customer_name?: string;
+    order_date: string;
+    delivery_date?: string;
+    total_amount?: number | string;
+    payment_method: 'cash' | 'mobile_money' | 'credit';
+    payment_status?: 'paid' | 'partial' | 'pending' | string;
+    order_lines?: Array<{ product_id: number; quantity: number }>;
+}
+
+export interface OrderCreateData {
     customer_id: number;
     order_date: string;
     delivery_date?: string;
@@ -102,6 +143,23 @@ interface SystemStats {
     suppliers: number;
     low_stock: number;
     pending_orders: number;
+}
+
+export interface CreditData {
+    credit_id: number;
+    customer_name: string;
+    location?: string;
+    amount_ugx: number;
+    date_recorded: string;
+    status: string;
+}
+
+export interface DeliveryData {
+    delivery_id: number;
+    customer_name: string;
+    staff_name: string;
+    delivery_date: string;
+    status: 'pending' | 'dispatched' | 'delivered';
 }
 
 interface PasswordStatus {
@@ -172,10 +230,20 @@ export const BatchAPI = {
 
 // ============ PRODUCT API ============
 export const ProductAPI = {
-    getAll: (): Promise<{ data: unknown[] }> =>
+    getAll: (): Promise<{ data: ProductData[] }> =>
         api.get('/products'),
-    getOne: (id: number): Promise<{ data: unknown }> =>
+    getOne: (id: number): Promise<{ data: ProductData }> =>
         api.get(`/products/${id}`),
+    getFlavours: (): Promise<{ data: FlavourData[] }> =>
+        api.get('/flavours'),
+    getPackSizes: (): Promise<{ data: PackSizeData[] }> =>
+        api.get('/pack-sizes'),
+    create: (data: ProductCreateData): Promise<{ data: ApiResponse & { product?: ProductData } }> =>
+        api.post('/products', data),
+    update: (id: number, data: ProductUpdateData): Promise<{ data: ApiResponse & { product?: ProductData } }> =>
+        api.put(`/products/${id}`, data),
+    delete: (id: number): Promise<{ data: ApiResponse }> =>
+        api.delete(`/products/${id}`),
 };
 
 // ============ ORDER API ============
@@ -184,7 +252,7 @@ export const OrderAPI = {
         api.get('/orders'),
     getOne: (id: number): Promise<{ data: OrderData }> =>
         api.get(`/orders/${id}`),
-    create: (data: OrderData): Promise<{ data: ApiResponse }> =>
+    create: (data: OrderCreateData): Promise<{ data: ApiResponse }> =>
         api.post('/orders', data),
     updateStatus: (id: number, status: string): Promise<{ data: ApiResponse }> =>
         api.put(`/orders/${id}/status`, { status }),
@@ -200,11 +268,11 @@ export const StaffAPI = {
 
 // ============ DELIVERY API ============
 export const DeliveryAPI = {
-    getAll: (): Promise<{ data: unknown[] }> =>
+    getAll: (): Promise<{ data: DeliveryData[] }> =>
         api.get('/deliveries'),
     updateStatus: (id: number, status: string): Promise<{ data: ApiResponse }> =>
         api.put(`/deliveries/${id}/status`, { status }),
-    getAudit: (): Promise<{ data: unknown[] }> =>
+    getAudit: (): Promise<{ data: DeliveryData[] }> =>
         api.get('/deliveries/audit'),
 };
 
@@ -236,7 +304,7 @@ export const ExpenditureAPI = {
 
 // ============ CREDIT API ============
 export const CreditAPI = {
-    getAll: (): Promise<{ data: unknown[] }> =>
+    getAll: (): Promise<{ data: CreditData[] }> =>
         api.get('/credit-accounts'),
     getSummary: (): Promise<{ data: { total_outstanding: number; count: number } }> =>
         api.get('/credit-accounts/summary'),

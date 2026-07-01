@@ -20,22 +20,36 @@
     gap: 10px;
 }
 
-/* ✅ Hamburger menu button for mobile */
 .menu-toggle {
     display: none;
+    align-items: center;
+    justify-content: center;
     background: none;
     border: none;
     color: white;
-    font-size: 1.8rem;
+    font-size: 1.5rem;
     cursor: pointer;
-    padding: 5px;
+    padding: 6px;
     line-height: 1;
+    border-radius: 6px;
+}
+
+.menu-toggle:hover {
+    background: rgba(255, 255, 255, 0.12);
 }
 
 .header-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 1.3rem;
     font-weight: 700;
     letter-spacing: 0.5px;
+    margin: 0;
+}
+
+.header-logo i {
+    font-size: 1.1rem;
 }
 
 .header-center {
@@ -60,12 +74,12 @@
     gap: 10px;
 }
 
-.user-name {
+.header-user-name {
     font-weight: 600;
     font-size: 0.9rem;
 }
 
-.user-role {
+.header-user-role {
     font-size: 0.65rem;
     padding: 3px 10px;
     border-radius: 12px;
@@ -74,29 +88,59 @@
     letter-spacing: 0.5px;
 }
 
-.role-production { background: #28a745; }
-.role-delivery { background: #17a2b8; }
-.role-sales { background: #ffc107; color: #333; }
-.role-maintenance { background: #6c757d; }
-.role-supervisor { background: #dc3545; }
-.role-admin { background: #6f42c1; }
+.header-user-role.role-production { background: #28a745; }
+.header-user-role.role-delivery { background: #17a2b8; }
+.header-user-role.role-sales { background: #ffc107; color: #333; }
+.header-user-role.role-maintenance { background: #6c757d; }
+.header-user-role.role-supervisor { background: #dc3545; }
+.header-user-role.role-admin { background: #6f42c1; }
 
 .logout-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     background: rgba(255, 255, 255, 0.15);
     border: 1px solid rgba(255, 255, 255, 0.3);
     color: white;
     padding: 5px 14px;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: all 0.2s;
     font-size: 0.85rem;
+    font-weight: 600;
 }
 
 .logout-btn:hover {
     background: rgba(255, 255, 255, 0.25);
 }
 
-/* ✅ Mobile Responsive */
+.change-password-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1rem;
+}
+
+.change-password-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.08);
+}
+
+.menu-toggle:focus-visible,
+.change-password-btn:focus-visible,
+.logout-btn:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 2px;
+}
+
 @media (max-width: 768px) {
     .header {
         padding: 0 12px;
@@ -104,8 +148,8 @@
     }
 
     .menu-toggle {
-        display: block;
-        font-size: 1.5rem;
+        display: flex;
+        font-size: 1.3rem;
     }
 
     .header-logo {
@@ -121,11 +165,11 @@
         text-align: center;
     }
 
-    .user-name {
+    .header-user-name {
         font-size: 0.75rem;
     }
 
-    .user-role {
+    .header-user-role {
         font-size: 0.55rem;
         padding: 2px 8px;
     }
@@ -135,8 +179,18 @@
         padding: 4px 10px;
     }
 
+    .logout-btn span {
+        display: none;
+    }
+
     .header-right {
         gap: 6px;
+    }
+
+    .change-password-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 0.85rem;
     }
 }
 
@@ -151,18 +205,18 @@
     }
 
     .menu-toggle {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
     }
 
     .header-date {
         font-size: 0.55rem;
     }
 
-    .user-name {
+    .header-user-name {
         display: none;
     }
 
-    .user-role {
+    .header-user-role {
         font-size: 0.5rem;
         padding: 2px 6px;
     }
@@ -171,41 +225,11 @@
         font-size: 0.6rem;
         padding: 3px 8px;
     }
-}
 
-/* ✅ Change Password Button */
-.change-password-btn {
-    background: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    color: white;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: all 0.3s;
-    font-size: 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.change-password-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: scale(1.1);
-}
-
-@media (max-width: 768px) {
-    .change-password-btn {
-        width: 30px;
-        height: 30px;
-        font-size: 0.85rem;
-    }
-}
-
-@media (max-width: 480px) {
     .change-password-btn {
         width: 26px;
         height: 26px;
         font-size: 0.7rem;
     }
 }
+

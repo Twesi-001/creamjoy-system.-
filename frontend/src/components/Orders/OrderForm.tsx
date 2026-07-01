@@ -31,9 +31,19 @@ interface FormData {
     order_lines: OrderLine[];
 }
 
+const formatUgx = (amount: number): string => `UGX ${amount.toLocaleString()}`;
+
+const extractErrorMessage = (err: unknown, fallback: string): string => {
+    if (err && typeof err === 'object' && 'response' in err) {
+        const message = (err as { response: { data?: { error?: string } } }).response.data?.error;
+        if (message) return message;
+    }
+    return fallback;
+};
+
 const OrderForm: React.FC = () => {
     const navigate = useNavigate();
-    const [loading, setLoading] = useState<boolean>(false);
+    const [submitting, setSubmitting] = useState<boolean>(false);
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [formData, setFormData] = useState<FormData>({
@@ -43,6 +53,10 @@ const OrderForm: React.FC = () => {
         payment_method: 'cash',
         order_lines: []
     });
+
+    const [formError, setFormError] = useState<string>('');
+    const [customerError, setCustomerError] = useState<string>('');
+    const [itemsError, setItemsError] = useState<string>('');
 
     const fetchData = useCallback(async (): Promise<void> => {
         try {
@@ -76,6 +90,9 @@ const OrderForm: React.FC = () => {
             ...prev,
             [name]: name === 'customer_id' ? parseInt(value) || 0 : value
         }));
+        if (name === 'customer_id' && value !== '0') {
+            setCustomerError('');
+        }
     };
 
     const handleProductChange = (index: number, field: keyof OrderLine, value: string): void => {
@@ -88,6 +105,7 @@ const OrderForm: React.FC = () => {
             ...prev,
             order_lines: updatedLines
         }));
+        setItemsError('');
     };
 
     const addProductRow = (): void => {
@@ -95,6 +113,7 @@ const OrderForm: React.FC = () => {
             ...prev,
             order_lines: [...prev.order_lines, { product_id: 0, quantity: 0 }]
         }));
+        setItemsError('');
     };
 
     const removeProductRow = (index: number): void => {
@@ -105,25 +124,40 @@ const OrderForm: React.FC = () => {
         }));
     };
 
+    const getProduct = (productId: number): Product | undefined => {
+        return products.find((p) => p.product_id === productId);
+    };
+
+    const estimatedTotal = formData.order_lines.reduce((sum, line) => {
+        const product = getProduct(line.product_id);
+        if (!product?.unit_price || !line.quantity) return sum;
+        return sum + product.unit_price * line.quantity;
+    }, 0);
+
     const handleSubmit = async (e: React.FormEvent): Promise<void> => {
         e.preventDefault();
-        setLoading(true);
+        setFormError('');
+        setCustomerError('');
+        setItemsError('');
 
+        const validLines = formData.order_lines.filter((l) => l.product_id > 0 && l.quantity > 0);
+
+        let hasValidationError = false;
+
+        if (formData.customer_id === 0) {
+            setCustomerError('Select a customer to continue.');
+            hasValidationError = true;
+        }
+
+        if (validLines.length === 0) {
+            setItemsError('Add at least one product with a quantity greater than zero.');
+            hasValidationError = true;
+        }
+
+        if (hasValidationError) return;
+
+        setSubmitting(true);
         try {
-            const validLines = formData.order_lines.filter(l => l.product_id > 0 && l.quantity > 0);
-            if (validLines.length === 0) {
-                alert('Please add at least one product.');
-                setLoading(false);
-                return;
-            }
-
-            if (formData.customer_id === 0) {
-                alert('Please select a customer.');
-                setLoading(false);
-                return;
-            }
-
-            // ✅ Ensure payment_method is correctly typed
             const orderData = {
                 customer_id: formData.customer_id,
                 order_date: formData.order_date,
@@ -135,33 +169,51 @@ const OrderForm: React.FC = () => {
             await OrderAPI.create(orderData);
             navigate('/orders');
         } catch (error: unknown) {
-            const errorMessage = error && typeof error === 'object' && 'response' in error 
-                ? (error as { response: { data?: { error?: string } } }).response.data?.error 
-                : 'Error creating order';
-            alert(errorMessage || 'Error creating order');
+            setFormError(extractErrorMessage(error, 'Error creating order'));
         } finally {
-            setLoading(false);
+            setSubmitting(false);
         }
     };
 
     return (
         <div className="order-form">
             <div className="page-header">
-                <h1>New Order</h1>
-                <button className="btn-secondary" onClick={() => navigate('/orders')}>
+                <div className="page-header-text">
+                    <h1>
+                        <i className="bi bi-cart-check" aria-hidden="true"></i>
+                        New Order
+                    </h1>
+                    <p>Create a customer order</p>
+                </div>
+                <button type="button" className="btn-secondary" onClick={() => navigate('/orders')}>
+                    <i className="bi bi-arrow-left" aria-hidden="true"></i>
                     Cancel
                 </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="form-container">
+            {formError && (
+                <div className="error-message">
+                    <i className="bi bi-exclamation-circle" aria-hidden="true"></i>
+                    <span>{formError}</span>
+                    <button className="error-dismiss" onClick={() => setFormError('')} aria-label="Dismiss error">
+                        <i className="bi bi-x" aria-hidden="true"></i>
+                    </button>
+                </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="form-container" noValidate>
                 <div className="form-grid">
                     <div className="form-group">
-                        <label>Customer *</label>
+                        <label htmlFor="customer_id">
+                            <i className="bi bi-person" aria-hidden="true"></i> Customer *
+                        </label>
                         <select
+                            id="customer_id"
                             name="customer_id"
                             value={formData.customer_id}
                             onChange={handleChange}
-                            required
+                            aria-invalid={!!customerError}
+                            aria-describedby={customerError ? 'customer-error' : undefined}
                         >
                             <option value={0}>Select Customer</option>
                             {customers.map((c) => (
@@ -170,11 +222,20 @@ const OrderForm: React.FC = () => {
                                 </option>
                             ))}
                         </select>
+                        {customerError && (
+                            <p className="field-error" id="customer-error">
+                                <i className="bi bi-exclamation-circle" aria-hidden="true"></i>
+                                {customerError}
+                            </p>
+                        )}
                     </div>
 
                     <div className="form-group">
-                        <label>Order Date *</label>
+                        <label htmlFor="order_date">
+                            <i className="bi bi-calendar-event" aria-hidden="true"></i> Order Date *
+                        </label>
                         <input
+                            id="order_date"
                             type="date"
                             name="order_date"
                             value={formData.order_date}
@@ -184,8 +245,11 @@ const OrderForm: React.FC = () => {
                     </div>
 
                     <div className="form-group">
-                        <label>Delivery Date</label>
+                        <label htmlFor="delivery_date">
+                            <i className="bi bi-calendar-event" aria-hidden="true"></i> Delivery Date
+                        </label>
                         <input
+                            id="delivery_date"
                             type="date"
                             name="delivery_date"
                             value={formData.delivery_date}
@@ -194,8 +258,11 @@ const OrderForm: React.FC = () => {
                     </div>
 
                     <div className="form-group">
-                        <label>Payment Method</label>
+                        <label htmlFor="payment_method">
+                            <i className="bi bi-wallet2" aria-hidden="true"></i> Payment Method
+                        </label>
                         <select
+                            id="payment_method"
                             name="payment_method"
                             value={formData.payment_method}
                             onChange={handleChange}
@@ -209,51 +276,83 @@ const OrderForm: React.FC = () => {
 
                 <div className="products-section">
                     <div className="products-header">
-                        <h3>Order Items</h3>
-                        <button type="button" className="btn-sm btn-primary" onClick={addProductRow}>
-                            + Add Item
+                        <h3>
+                            <i className="bi bi-box-seam" aria-hidden="true"></i> Order Items
+                        </h3>
+                        <button type="button" className="btn-add-item" onClick={addProductRow}>
+                            <i className="bi bi-plus-circle" aria-hidden="true"></i>
+                            Add Item
                         </button>
                     </div>
 
-                    {formData.order_lines.map((item, index) => (
-                        <div key={index} className="product-row">
-                            <select
-                                value={item.product_id}
-                                onChange={(e) => handleProductChange(index, 'product_id', e.target.value)}
-                            >
-                                <option value={0}>Select Product</option>
-                                {products.map((p) => (
-                                    <option key={p.product_id} value={p.product_id}>
-                                        {p.flavour_name} - {p.size_name}
-                                    </option>
-                                ))}
-                            </select>
+                    {itemsError && (
+                        <p className="field-error">
+                            <i className="bi bi-exclamation-circle" aria-hidden="true"></i>
+                            {itemsError}
+                        </p>
+                    )}
 
-                            <input
-                                type="number"
-                                value={item.quantity || ''}
-                                onChange={(e) => handleProductChange(index, 'quantity', e.target.value)}
-                                placeholder="Qty"
-                                min="1"
-                            />
+                    {formData.order_lines.map((item, index) => {
+                        const product = getProduct(item.product_id);
+                        const lineTotal = product?.unit_price ? product.unit_price * (item.quantity || 0) : 0;
+                        return (
+                            <div key={index} className="product-row">
+                                <div className="product-row-fields">
+                                    <select
+                                        aria-label={`Product for item ${index + 1}`}
+                                        value={item.product_id}
+                                        onChange={(e) => handleProductChange(index, 'product_id', e.target.value)}
+                                    >
+                                        <option value={0}>Select Product</option>
+                                        {products.map((p) => (
+                                            <option key={p.product_id} value={p.product_id}>
+                                                {p.flavour_name} - {p.size_name}
+                                            </option>
+                                        ))}
+                                    </select>
 
-                            <button
-                                type="button"
-                                className="btn-sm btn-danger"
-                                onClick={() => removeProductRow(index)}
-                            >
-                                ✕
-                            </button>
-                        </div>
-                    ))}
+                                    <input
+                                        aria-label={`Quantity for item ${index + 1}`}
+                                        type="number"
+                                        value={item.quantity || ''}
+                                        onChange={(e) => handleProductChange(index, 'quantity', e.target.value)}
+                                        placeholder="Qty"
+                                        min="1"
+                                    />
+                                </div>
+
+                                <div className="product-row-total">
+                                    {lineTotal > 0 ? formatUgx(lineTotal) : ''}
+                                </div>
+
+                                <button
+                                    type="button"
+                                    className="btn-icon btn-icon-delete"
+                                    onClick={() => removeProductRow(index)}
+                                    aria-label={`Remove item ${index + 1}`}
+                                    title="Remove item"
+                                >
+                                    <i className="bi bi-trash" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        );
+                    })}
 
                     {formData.order_lines.length === 0 && (
-                        <p className="no-products">No items added yet.</p>
+                        <p className="no-products">No items added yet. Click "Add Item" to begin.</p>
+                    )}
+
+                    {estimatedTotal > 0 && (
+                        <div className="order-total-row">
+                            <span>Estimated Total</span>
+                            <strong>{formatUgx(estimatedTotal)}</strong>
+                        </div>
                     )}
                 </div>
 
-                <button type="submit" className="btn-primary submit-btn" disabled={loading}>
-                    {loading ? 'Creating...' : 'Create Order'}
+                <button type="submit" className="btn-primary submit-btn" disabled={submitting}>
+                    <i className="bi bi-check-circle" aria-hidden="true"></i>
+                    {submitting ? 'Creating...' : 'Create Order'}
                 </button>
             </form>
         </div>
@@ -261,3 +360,4 @@ const OrderForm: React.FC = () => {
 };
 
 export default OrderForm;
+
