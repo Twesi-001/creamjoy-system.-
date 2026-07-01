@@ -1,12 +1,12 @@
 .sidebar {
     background: #15845D;
     color: white;
-    width: 250px;
+    width: 280px;
     height: 100vh;
     position: fixed;
     top: 60px;
     left: 0;
-    padding: 20px 0;
+    padding: 14px 0;
     overflow-y: auto;
     z-index: 1000;
     display: flex;
@@ -21,7 +21,7 @@
         top: 55px;
         width: 280px;
         transform: translateX(-100%);
-        padding: 10px 0;
+        padding: 8px 0;
     }
 
     .sidebar.open {
@@ -79,8 +79,8 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 16px;
-    margin: 0 12px 15px;
+    padding: 10px 14px;
+    margin: 0 10px 10px;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
 }
@@ -144,22 +144,25 @@
     padding: 0;
     margin: 0;
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .sidebar-item {
-    margin: 2px 10px;
+    margin: 0 8px;
 }
 
 .sidebar-link {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 10px 15px;
+    padding: 8px 12px;
     color: rgba(255, 255, 255, 0.7);
     text-decoration: none;
     border-radius: 8px;
     transition: all 0.3s;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
 }
 
 .sidebar-link:hover {
@@ -174,34 +177,34 @@
 }
 
 .link-icon {
-    font-size: 1.1rem;
-    width: 24px;
+    font-size: 1rem;
+    width: 20px;
     text-align: center;
 }
 
 .link-label {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 500;
 }
 
 @media (max-width: 768px) {
     .sidebar-item {
-        margin: 1px 8px;
+        margin: 0 8px;
     }
 
     .sidebar-link {
-        padding: 8px 12px;
-        font-size: 0.85rem;
+        padding: 7px 10px;
+        font-size: 0.8rem;
         gap: 10px;
     }
 
     .link-icon {
-        font-size: 1rem;
+        font-size: 0.95rem;
         width: 20px;
     }
 
     .link-label {
-        font-size: 0.8rem;
+        font-size: 0.78rem;
     }
 }
 

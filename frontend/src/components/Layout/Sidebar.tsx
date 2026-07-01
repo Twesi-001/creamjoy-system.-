@@ -27,9 +27,9 @@ const ROLE_MENU_ITEMS: Record<UserRole, MenuItem[]> = {
         { path: '/inventory', icon: 'bi-boxes', label: 'Inventory', roles: ['admin'] },
         { path: '/raw-materials', icon: 'bi-archive', label: 'Raw Materials', roles: ['admin'] },
         { path: '/suppliers', icon: 'bi-building', label: 'Suppliers', roles: ['admin'] },
+        { path: '/expenditures/new', icon: 'bi-receipt', label: 'Expenditure', roles: ['admin'] },
         { path: '/customers', icon: 'bi-people', label: 'Customers', roles: ['admin'] },
         { path: '/credit', icon: 'bi-wallet2', label: 'Credit Accounts', roles: ['admin'] },
-        { path: '/expenditures/new', icon: 'bi-receipt', label: 'Expenditure', roles: ['admin'] },
     ],
     supervisor: [
         { path: '/', icon: 'bi-speedometer2', label: 'Dashboard', roles: ['supervisor'] },
@@ -88,6 +88,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
 
     const roleLabel = getRoleLabel(role);
     const displayName = userName.trim() || roleLabel;
+    const showRoleBadge = role === 'admin' && displayName.trim().toLowerCase() !== roleLabel.toLowerCase();
 
     useEffect(() => {
         const handleResize = () => {
@@ -139,7 +140,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
                     <i className="bi bi-person-circle sidebar-user-avatar" aria-hidden="true"></i>
                     <div className="sidebar-user-info">
                         <span className="sidebar-user-name">{displayName}</span>
-                        {role === 'admin' && (
+                        {showRoleBadge && (
                             <span className={`sidebar-user-role role-${role}`}>{roleLabel}</span>
                         )}
                     </div>
