@@ -283,7 +283,7 @@ const Dashboard: React.FC = () => {
                 <MetricCard
                     title="Today's Batches"
                     value={metrics.todayBatches}
-                    icon="bi bi-factory"
+                    icon="bi bi-box-seam"
                     color="primary"
                 />
                 <MetricCard
