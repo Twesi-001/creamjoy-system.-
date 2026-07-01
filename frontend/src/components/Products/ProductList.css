@@ -182,28 +182,21 @@
     cursor: not-allowed;
 }
 
-/* Small buttons - IMPORTANT: This is where the spacing is fixed */
+/* Small buttons */
 .btn-sm {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    gap: 8px;
     border: none;
-    border-radius: 6px;
+    border-radius: 10px;
     cursor: pointer;
     font-size: 0.85rem;
     font-weight: 600;
-    padding: 8px 16px;
+    padding: 10px 14px;
     min-height: 36px;
     transition: all 0.2s ease;
-    margin: 0 4px; /* Added horizontal margin for spacing between buttons */
-}
-
-.btn-sm:first-child {
-    margin-left: 0; /* Remove left margin from first button */
-}
-
-.btn-sm:last-child {
-    margin-right: 0; /* Remove right margin from last button */
+    width: 100%;
 }
 
 .btn-sm i {
@@ -214,22 +207,26 @@
     background: rgba(23, 162, 184, 0.12);
     color: #0f6674;
     border: 1px solid rgba(23, 162, 184, 0.2);
+    box-shadow: 0 1px 4px rgba(23, 162, 184, 0.08);
 }
 
 .btn-edit:hover {
     background: rgba(23, 162, 184, 0.22);
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(23, 162, 184, 0.14);
 }
 
 .btn-delete {
     background: rgba(220, 53, 69, 0.1);
     color: #a3202c;
     border: 1px solid rgba(220, 53, 69, 0.15);
+    box-shadow: 0 1px 4px rgba(220, 53, 69, 0.08);
 }
 
 .btn-delete:hover {
     background: rgba(220, 53, 69, 0.2);
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.14);
 }
 
 .btn-icon-close {
@@ -554,10 +551,15 @@
 .product-actions {
     margin-top: 12px;
     display: flex;
-    gap: 12px; /* This creates space between the buttons */
-    flex-wrap: wrap;
-    padding-top: 12px;
+    gap: 10px;
+    flex-wrap: nowrap;
+    padding-top: 14px;
     border-top: 1px solid #f1f3f5;
+}
+
+.product-actions .btn-sm {
+    flex: 1 1 0;
+    min-width: 0;
 }
 
 /* Modal */
