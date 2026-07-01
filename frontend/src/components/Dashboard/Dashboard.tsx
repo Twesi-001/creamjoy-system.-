@@ -140,6 +140,17 @@ interface DailyBatch {
     count: number;
 }
 
+const toNumber = (value: unknown): number => {
+    const numericValue = typeof value === 'string' ? Number.parseFloat(value) : Number(value);
+    return Number.isFinite(numericValue) ? numericValue : 0;
+};
+
+const formatCurrency = (value: number): string =>
+    `UGX ${value.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    })}`;
+
 const ROLE_LABELS: Record<string, string> = {
     admin: 'System Admin',
     sales: 'Sales',
@@ -281,7 +292,7 @@ const Dashboard: React.FC = () => {
             const totalCustomers = customers.length;
             const totalProducts = products.length;
             const totalRevenue = orders.reduce(
-                (sum: number, order: Order) => sum + (order.total_amount || 0),
+                (sum: number, order: Order) => sum + toNumber(order.total_amount),
                 0
             );
 
@@ -316,7 +327,7 @@ const Dashboard: React.FC = () => {
                 date,
                 revenue: orders
                     .filter((order: Order) => order.order_date.split('T')[0] === date)
-                    .reduce((sum: number, order: Order) => sum + (order.total_amount || 0), 0)
+                    .reduce((sum: number, order: Order) => sum + toNumber(order.total_amount), 0)
             }));
 
             console.log('Daily Batches:', dailyBatches);
@@ -420,7 +431,7 @@ const Dashboard: React.FC = () => {
                 {showRevenueInsights && (
                     <MetricCard
                         title="Revenue Collected (7 Days)"
-                        value={`UGX ${metrics.totalRevenue.toLocaleString()}`}
+                        value={formatCurrency(metrics.totalRevenue)}
                         icon="bi bi-graph-up-arrow"
                         color="success"
                     />
@@ -452,7 +463,7 @@ const Dashboard: React.FC = () => {
                                             y: {
                                                 beginAtZero: true,
                                                 ticks: {
-                                                    callback: (value) => `UGX ${Number(value).toLocaleString()}`,
+                                                    callback: (value) => formatCurrency(Number(value)),
                                                 },
                                             },
                                         },
