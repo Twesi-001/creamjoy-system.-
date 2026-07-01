@@ -191,7 +191,7 @@ const Dashboard: React.FC = () => {
     const [revenueChartData, setRevenueChartData] = useState<ChartData | null>(null);
 
     const normalizedRole = userRole.toLowerCase();
-    const showRevenueInsights = normalizedRole === 'admin' || normalizedRole === 'sales';
+    const showRevenueInsights = normalizedRole === 'admin';
 
     // Helper function to get last 7 days
     const getLast7Days = (): string[] => {

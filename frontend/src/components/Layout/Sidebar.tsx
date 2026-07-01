@@ -86,7 +86,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
     };
 
     const roleLabel = getRoleLabel(role);
-    const showRoleLabel = userName.trim().toLowerCase() !== roleLabel.toLowerCase();
+    const displayName = userName.trim() || roleLabel;
 
     useEffect(() => {
         const handleResize = () => {
@@ -137,8 +137,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
                 <div className="sidebar-user">
                     <i className="bi bi-person-circle sidebar-user-avatar" aria-hidden="true"></i>
                     <div className="sidebar-user-info">
-                        <span className="sidebar-user-name">{showRoleLabel ? userName : roleLabel}</span>
-                        {showRoleLabel && (
+                        <span className="sidebar-user-name">{displayName}</span>
+                        {role === 'admin' && (
                             <span className={`sidebar-user-role role-${role}`}>{roleLabel}</span>
                         )}
                     </div>
