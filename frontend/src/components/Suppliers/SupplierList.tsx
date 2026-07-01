@@ -26,7 +26,10 @@ const SupplierList: React.FC = () => {
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string>('');
+    const [successMessage, setSuccessMessage] = useState<string>('');
     const [showForm, setShowForm] = useState<boolean>(false);
+    const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+    const [supplierToDelete, setSupplierToDelete] = useState<number | null>(null);
     const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
     const [formData, setFormData] = useState<FormData>({
         supplier_name: '',
@@ -36,11 +39,12 @@ const SupplierList: React.FC = () => {
         location: '',
         notes: ''
     });
+    const [formErrors, setFormErrors] = useState<Partial<FormData>>({});
 
-    // ✅ Define fetchSuppliers with useCallback
     const fetchSuppliers = useCallback(async (): Promise<void> => {
         setLoading(true);
         setError('');
+        setSuccessMessage('');
         try {
             const response = await SupplierAPI.getAll();
             setSuppliers((response.data || []) as Supplier[]);
@@ -55,7 +59,6 @@ const SupplierList: React.FC = () => {
         }
     }, []);
 
-    // ✅ useEffect with cleanup
     useEffect(() => {
         let isMounted = true;
         const loadData = async () => {
@@ -69,21 +72,54 @@ const SupplierList: React.FC = () => {
         };
     }, [fetchSuppliers]);
 
+    const validateForm = (): boolean => {
+        const errors: Partial<FormData> = {};
+        
+        if (!formData.supplier_name.trim()) {
+            errors.supplier_name = 'Supplier name is required';
+        }
+        
+        if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+            errors.email = 'Please enter a valid email address';
+        }
+        
+        setFormErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+        const { name, value } = e.target;
         setFormData((prev) => ({
             ...prev,
-            [e.target.name]: e.target.value
+            [name]: value
         }));
+        // Clear error for this field when user types
+        if (formErrors[name as keyof FormData]) {
+            setFormErrors((prev) => ({
+                ...prev,
+                [name]: undefined
+            }));
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent): Promise<void> => {
         e.preventDefault();
+        
+        if (!validateForm()) {
+            return;
+        }
+
         setLoading(true);
+        setError('');
+        setSuccessMessage('');
+        
         try {
             if (editingSupplier) {
                 await SupplierAPI.update(editingSupplier.supplier_id, formData);
+                setSuccessMessage('Supplier updated successfully');
             } else {
                 await SupplierAPI.create(formData);
+                setSuccessMessage('Supplier added successfully');
             }
             setShowForm(false);
             setEditingSupplier(null);
@@ -95,7 +131,10 @@ const SupplierList: React.FC = () => {
                 location: '',
                 notes: ''
             });
+            setFormErrors({});
             await fetchSuppliers();
+            // Auto-dismiss success message after 5 seconds
+            setTimeout(() => setSuccessMessage(''), 5000);
         } catch (err: unknown) {
             const errorMessage = err && typeof err === 'object' && 'response' in err 
                 ? (err as { response: { data?: { error?: string } } }).response.data?.error 
@@ -116,20 +155,41 @@ const SupplierList: React.FC = () => {
             location: supplier.location || '',
             notes: supplier.notes || ''
         });
+        setFormErrors({});
         setShowForm(true);
     };
 
-    const handleDelete = async (id: number): Promise<void> => {
-        if (!window.confirm('Are you sure you want to delete this supplier?')) return;
+    const handleDeleteClick = (id: number): void => {
+        setSupplierToDelete(id);
+        setShowConfirmModal(true);
+    };
+
+    const handleConfirmDelete = async (): Promise<void> => {
+        if (!supplierToDelete) return;
+        
+        setLoading(true);
+        setError('');
+        setShowConfirmModal(false);
+        
         try {
-            await SupplierAPI.delete(id);
+            await SupplierAPI.delete(supplierToDelete);
+            setSuccessMessage('Supplier deleted successfully');
             await fetchSuppliers();
+            setTimeout(() => setSuccessMessage(''), 5000);
         } catch (err: unknown) {
             const errorMessage = err && typeof err === 'object' && 'response' in err 
                 ? (err as { response: { data?: { error?: string } } }).response.data?.error 
                 : 'Failed to delete supplier';
             setError(errorMessage || 'Failed to delete supplier');
+        } finally {
+            setLoading(false);
+            setSupplierToDelete(null);
         }
+    };
+
+    const handleCancelDelete = (): void => {
+        setShowConfirmModal(false);
+        setSupplierToDelete(null);
     };
 
     const handleCancel = (): void => {
@@ -143,86 +203,201 @@ const SupplierList: React.FC = () => {
             location: '',
             notes: ''
         });
+        setFormErrors({});
     };
+
+    const formatValue = (value: string | undefined | null): string => {
+        if (!value || value.trim() === '') {
+            return 'Not provided';
+        }
+        return value;
+    };
+
+    const getSupplierCount = (): number => suppliers.length;
+
+    if (loading && suppliers.length === 0) {
+        return (
+            <div className="supplier-list">
+                <div className="loading-state">
+                    <div className="spinner"></div>
+                    <p>Loading suppliers...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="supplier-list">
             <div className="page-header">
-                <h1>📦 Suppliers</h1>
-                <button className="btn-primary" onClick={() => setShowForm(true)}>
-                    + Add Supplier
-                </button>
+                <div className="header-left">
+                    <div className="header-icon">
+                        <i className="bi bi-building"></i>
+                    </div>
+                    <div>
+                        <h1>Suppliers</h1>
+                        <p className="header-subtitle">Manage your supplier contacts and information</p>
+                    </div>
+                </div>
+                <div className="header-actions">
+                    <span className="supplier-count">{getSupplierCount()} supplier{getSupplierCount() !== 1 ? 's' : ''}</span>
+                    <button className="btn-primary" onClick={() => setShowForm(true)}>
+                        <i className="bi bi-plus-circle"></i>
+                        Add Supplier
+                    </button>
+                </div>
             </div>
 
-            {error && <div className="error-message">{error}</div>}
+            {successMessage && (
+                <div className="success-message">
+                    <i className="bi bi-check-circle"></i>
+                    {successMessage}
+                </div>
+            )}
+
+            {error && (
+                <div className="error-message">
+                    <i className="bi bi-exclamation-circle"></i>
+                    <span>{error}</span>
+                    <button className="btn-retry" onClick={fetchSuppliers}>
+                        <i className="bi bi-arrow-repeat"></i>
+                        Retry
+                    </button>
+                </div>
+            )}
 
             {showForm && (
-                <div className="modal-overlay">
+                <div className="modal-overlay" role="dialog" aria-modal="true">
                     <div className="modal-content">
-                        <h2>{editingSupplier ? 'Edit Supplier' : 'Add New Supplier'}</h2>
-                        <form onSubmit={handleSubmit}>
+                        <div className="modal-header">
+                            <h2>
+                                <i className="bi bi-building"></i>
+                                {editingSupplier ? 'Edit Supplier' : 'Add New Supplier'}
+                            </h2>
+                            <button 
+                                className="modal-close" 
+                                onClick={handleCancel}
+                                aria-label="Close form"
+                            >
+                                <i className="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                        <form onSubmit={handleSubmit} noValidate>
                             <div className="form-group">
-                                <label>Supplier Name *</label>
+                                <label htmlFor="supplier_name">
+                                    <i className="bi bi-building"></i>
+                                    Supplier Name <span className="required">*</span>
+                                </label>
                                 <input
+                                    id="supplier_name"
                                     type="text"
                                     name="supplier_name"
                                     value={formData.supplier_name}
                                     onChange={handleInputChange}
+                                    className={formErrors.supplier_name ? 'error' : ''}
+                                    placeholder="Enter supplier name"
                                     required
                                 />
+                                {formErrors.supplier_name && (
+                                    <span className="field-error">{formErrors.supplier_name}</span>
+                                )}
                             </div>
+
                             <div className="form-group">
-                                <label>Contact Person</label>
+                                <label htmlFor="contact_person">
+                                    <i className="bi bi-person-badge"></i>
+                                    Contact Person
+                                </label>
                                 <input
+                                    id="contact_person"
                                     type="text"
                                     name="contact_person"
                                     value={formData.contact_person}
                                     onChange={handleInputChange}
+                                    placeholder="Enter contact person name"
                                 />
                             </div>
+
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label>Phone</label>
+                                    <label htmlFor="phone">
+                                        <i className="bi bi-telephone"></i>
+                                        Phone
+                                    </label>
                                     <input
-                                        type="text"
+                                        id="phone"
+                                        type="tel"
                                         name="phone"
                                         value={formData.phone}
                                         onChange={handleInputChange}
+                                        placeholder="Enter phone number"
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label>Email</label>
+                                    <label htmlFor="email">
+                                        <i className="bi bi-envelope"></i>
+                                        Email
+                                    </label>
                                     <input
+                                        id="email"
                                         type="email"
                                         name="email"
                                         value={formData.email}
                                         onChange={handleInputChange}
+                                        className={formErrors.email ? 'error' : ''}
+                                        placeholder="Enter email address"
                                     />
+                                    {formErrors.email && (
+                                        <span className="field-error">{formErrors.email}</span>
+                                    )}
                                 </div>
                             </div>
+
                             <div className="form-group">
-                                <label>Location</label>
+                                <label htmlFor="location">
+                                    <i className="bi bi-geo-alt"></i>
+                                    Location
+                                </label>
                                 <input
+                                    id="location"
                                     type="text"
                                     name="location"
                                     value={formData.location}
                                     onChange={handleInputChange}
+                                    placeholder="Enter location"
                                 />
                             </div>
+
                             <div className="form-group">
-                                <label>Notes</label>
+                                <label htmlFor="notes">
+                                    <i className="bi bi-card-text"></i>
+                                    Notes
+                                </label>
                                 <textarea
+                                    id="notes"
                                     name="notes"
                                     value={formData.notes}
                                     onChange={handleInputChange}
                                     rows={3}
+                                    placeholder="Enter any additional notes..."
                                 />
                             </div>
+
                             <div className="form-actions">
                                 <button type="submit" className="btn-primary" disabled={loading}>
-                                    {loading ? 'Saving...' : 'Save'}
+                                    {loading ? (
+                                        <>
+                                            <span className="spinner-small"></span>
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <i className="bi bi-check-circle"></i>
+                                            {editingSupplier ? 'Update Supplier' : 'Add Supplier'}
+                                        </>
+                                    )}
                                 </button>
                                 <button type="button" className="btn-secondary" onClick={handleCancel}>
+                                    <i className="bi bi-x-lg"></i>
                                     Cancel
                                 </button>
                             </div>
@@ -231,59 +406,125 @@ const SupplierList: React.FC = () => {
                 </div>
             )}
 
-            {loading ? (
-                <div className="loading">Loading suppliers...</div>
-            ) : (
-                <div className="table-container">
-                    <table className="data-table">
-                        <thead>
+            {showConfirmModal && (
+                <div className="modal-overlay" role="dialog" aria-modal="true">
+                    <div className="modal-content modal-confirm">
+                        <div className="modal-header">
+                            <h2>
+                                <i className="bi bi-exclamation-triangle"></i>
+                                Confirm Delete
+                            </h2>
+                            <button 
+                                className="modal-close" 
+                                onClick={handleCancelDelete}
+                                aria-label="Close confirmation"
+                            >
+                                <i className="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <p>Are you sure you want to delete this supplier?</p>
+                            <p className="text-muted">This action cannot be undone.</p>
+                        </div>
+                        <div className="form-actions">
+                            <button className="btn-danger" onClick={handleConfirmDelete}>
+                                <i className="bi bi-trash"></i>
+                                Delete
+                            </button>
+                            <button className="btn-secondary" onClick={handleCancelDelete}>
+                                <i className="bi bi-x-lg"></i>
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <div className="table-container">
+                <table className="data-table">
+                    <thead>
+                        <tr>
+                            <th>Supplier</th>
+                            <th>Contact</th>
+                            <th>Phone</th>
+                            <th>Email</th>
+                            <th>Location</th>
+                            <th className="actions-header">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {suppliers.length === 0 ? (
                             <tr>
-                                <th>Name</th>
-                                <th>Contact Person</th>
-                                <th>Phone</th>
-                                <th>Email</th>
-                                <th>Location</th>
-                                <th>Actions</th>
+                                <td colSpan={6} className="empty-state">
+                                    <div className="empty-state-content">
+                                        <i className="bi bi-inbox"></i>
+                                        <p>No suppliers found</p>
+                                        <span>Click "Add Supplier" to create your first supplier</span>
+                                    </div>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {suppliers.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="empty-state">
-                                        No suppliers found. Click "Add Supplier" to create one.
+                        ) : (
+                            suppliers.map((supplier) => (
+                                <tr key={supplier.supplier_id}>
+                                    <td>
+                                        <div className="supplier-name-cell">
+                                            <i className="bi bi-building"></i>
+                                            <span className="supplier-name">{supplier.supplier_name}</span>
+                                        </div>
                                     </td>
-                                </tr>
-                            ) : (
-                                suppliers.map((supplier) => (
-                                    <tr key={supplier.supplier_id}>
-                                        <td><strong>{supplier.supplier_name}</strong></td>
-                                        <td>{supplier.contact_person || '-'}</td>
-                                        <td>{supplier.phone || '-'}</td>
-                                        <td>{supplier.email || '-'}</td>
-                                        <td>{supplier.location || '-'}</td>
-                                        <td>
+                                    <td>
+                                        <div className="contact-cell">
+                                            <i className="bi bi-person-badge"></i>
+                                            {formatValue(supplier.contact_person)}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div className="phone-cell">
+                                            <i className="bi bi-telephone"></i>
+                                            {formatValue(supplier.phone)}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div className="email-cell">
+                                            <i className="bi bi-envelope"></i>
+                                            {formatValue(supplier.email)}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div className="location-cell">
+                                            <i className="bi bi-geo-alt"></i>
+                                            {formatValue(supplier.location)}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div className="action-buttons">
                                             <button 
                                                 className="btn-sm btn-edit"
                                                 onClick={() => handleEdit(supplier)}
+                                                aria-label={`Edit ${supplier.supplier_name}`}
+                                                title="Edit supplier"
                                             >
-                                                ✏️
+                                                <i className="bi bi-pencil-square"></i>
                                             </button>
                                             <button 
                                                 className="btn-sm btn-delete"
-                                                onClick={() => handleDelete(supplier.supplier_id)}
+                                                onClick={() => handleDeleteClick(supplier.supplier_id)}
+                                                aria-label={`Delete ${supplier.supplier_name}`}
+                                                title="Delete supplier"
                                             >
-                                                🗑️
+                                                <i className="bi bi-trash"></i>
                                             </button>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 };
 
 export default SupplierList;
+

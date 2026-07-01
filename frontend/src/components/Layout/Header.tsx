@@ -9,9 +9,10 @@ interface User {
 
 interface HeaderProps {
     onMenuToggle?: () => void;
+    isSidebarOpen?: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
+const Header: React.FC<HeaderProps> = ({ onMenuToggle, isSidebarOpen }) => {
     const [userName, setUserName] = useState<string>('John Doe');
     const [userRole, setUserRole] = useState<string>('Manager');
     const [today, setToday] = useState<string>('');
@@ -19,7 +20,6 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
     const navigate = useNavigate();
     const isMounted = useRef<boolean>(true);
 
-    // ✅ Load data on mount
     useEffect(() => {
         isMounted.current = true;
 
@@ -50,7 +50,6 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
         };
     }, []);
 
-    // ✅ Handle resize
     useEffect(() => {
         const handleResize = () => {
             setIsMobile(window.innerWidth <= 768);
@@ -69,7 +68,6 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
         navigate('/login');
     };
 
-    // ✅ Navigate to change password page
     const handleChangePassword = (): void => {
         navigate('/change-password');
     };
@@ -78,28 +76,42 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
         <header className="header">
             <div className="header-left">
                 {isMobile && (
-                    <button className="menu-toggle" onClick={onMenuToggle} aria-label="Toggle menu">
-                        ☰
+                    <button
+                        className="menu-toggle"
+                        onClick={onMenuToggle}
+                        aria-label={isSidebarOpen ? 'Close menu' : 'Open menu'}
+                        aria-expanded={isSidebarOpen}
+                        aria-controls="app-sidebar"
+                    >
+                        <i className="bi bi-list" aria-hidden="true"></i>
                     </button>
                 )}
-                <h1 className="header-logo">🥛 CreamJoy</h1>
+                <h1 className="header-logo">
+                    <i className="bi bi-droplet-fill" aria-hidden="true"></i>
+                    <span>CreamJoy</span>
+                </h1>
             </div>
             <div className="header-center">
                 <span className="header-date">{today}</span>
             </div>
             <div className="header-right">
-                {/* ✅ Change Password Button */}
-                <button className="change-password-btn" onClick={handleChangePassword} title="Change Password">
-                    🔑
+                <button
+                    className="change-password-btn"
+                    onClick={handleChangePassword}
+                    title="Change password"
+                    aria-label="Change password"
+                >
+                    <i className="bi bi-key" aria-hidden="true"></i>
                 </button>
                 <div className="header-user">
-                    <span className="user-name">{userName}</span>
-                    <span className={`user-role role-${userRole.toLowerCase()}`}>
+                    <span className="header-user-name">{userName}</span>
+                    <span className={`header-user-role role-${userRole.toLowerCase()}`}>
                         {userRole}
                     </span>
                 </div>
-                <button className="logout-btn" onClick={handleLogout}>
-                    Logout
+                <button className="logout-btn" onClick={handleLogout} aria-label="Log out">
+                    <i className="bi bi-box-arrow-right" aria-hidden="true"></i>
+                    <span>Logout</span>
                 </button>
             </div>
         </header>
@@ -107,3 +119,4 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
 };
 
 export default Header;
+

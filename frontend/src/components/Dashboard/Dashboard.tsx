@@ -1,8 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react-hooks/set-state-in-effect */
-/* eslint-disable react-hooks/immutability */
-/* eslint-disable no-useless-assignment */
 import React, { useState, useEffect } from 'react';
 import {
     Chart as ChartJS,
@@ -94,8 +89,9 @@ interface InventoryItem {
     material_name: string;
     current_stock: number;
     minimum_stock: number;
-    low_stock: boolean | number;  // ✅ Allow both boolean and number
+    low_stock: boolean | number; // Backend may return either a boolean or a 0/1 flag
 }
+
 interface Customer {
     customer_id: number;
 }
@@ -114,7 +110,22 @@ interface User {
     role: string;
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+// Formatting helpers
+const formatCurrency = (amount: number): string => {
+    return `UGX ${Math.round(amount || 0).toLocaleString()}`;
+};
+
+const formatDate = (value: string): string => {
+    const parsed = new Date(value);
+    if (isNaN(parsed.getTime())) {
+        return value;
+    }
+    return parsed.toLocaleDateString('en-UG', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+    });
+};
 
 const Dashboard: React.FC = () => {
     const [userRole, setUserRole] = useState<string>('delivery');
@@ -130,6 +141,7 @@ const Dashboard: React.FC = () => {
         totalRevenue: 0
     });
     const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string>('');
     const [recentBatches, setRecentBatches] = useState<Batch[]>([]);
     const [recentOrders, setRecentOrders] = useState<Order[]>([]);
     const [lowStockItems, setLowStockItems] = useState<InventoryItem[]>([]);
@@ -145,13 +157,14 @@ const Dashboard: React.FC = () => {
                 setUserRole(user.role || 'delivery');
                 setUserName(user.name || 'User');
             } catch (e) {
-                console.error('Error parsing user:', e);
+                console.error('Error parsing stored user:', e);
             }
         }
         void fetchDashboardData();
+        // Runs once on mount; fetchDashboardData reads the latest userRole internally when it resolves.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // ✅ Helper functions - defined at component level
     const getLast7Days = (): string[] => {
         const dates: string[] = [];
         for (let i = 6; i >= 0; i--) {
@@ -252,18 +265,12 @@ const Dashboard: React.FC = () => {
                 break;
             }
 
-            default: {
-                const defaultLabels = ['Total', 'Active', 'Inactive'];
-                const defaultData = [1, 1, 0];
-                const defaultColors = ['#1D9E75', '#17a2b8', '#dc3545'];
-                const defaultLabel = 'Overview';
-
-                labels = defaultLabels;
-                chartData = defaultData;
-                colors = defaultColors;
-                label = defaultLabel;
+            default:
+                labels = ['Total', 'Active', 'Inactive'];
+                chartData = [1, 1, 0];
+                colors = ['#1D9E75', '#17a2b8', '#dc3545'];
+                label = 'Overview';
                 break;
-            }
         }
 
         setRoleChartData({
@@ -284,6 +291,7 @@ const Dashboard: React.FC = () => {
 
     const fetchDashboardData = async (): Promise<void> => {
         setLoading(true);
+        setError('');
         try {
             const [
                 batchesRes,
@@ -303,55 +311,29 @@ const Dashboard: React.FC = () => {
                 ProductAPI.getAll()
             ]);
 
-            const batches = (batchesRes as any)?.data || [];
-            const orders = (ordersRes as any)?.data || [];
-            const deliveries = (deliveriesRes as any)?.data || [];
-            const inventory = (inventoryRes as any)?.data || [];
-            const credit = (creditRes as any)?.data || { total_outstanding: 0, count: 0 };
-            const customers = (customersRes as any)?.data || [];
-            const products = (productsRes as any)?.data || [];
-
-            // ✅ DEBUG: Log batches data
-            console.log('📦 Batches from API:', batches);
-            console.log('📦 Batches count:', batches.length);
-            console.log('📅 Batch dates:', batches.map((b: Batch) => b.batch_date));
+            const batches: Batch[] = (batchesRes?.data || []) as unknown as Batch[];
+            const orders: Order[] = (ordersRes?.data || []) as unknown as Order[];
+            const deliveries: Delivery[] = (deliveriesRes?.data || []) as unknown as Delivery[];
+            const inventory: InventoryItem[] = (inventoryRes?.data || []) as unknown as InventoryItem[];
+            const credit: CreditSummary = (creditRes?.data || { total_outstanding: 0, count: 0 }) as unknown as CreditSummary;
+            const customers: Customer[] = (customersRes?.data || []) as unknown as Customer[];
+            const products: Product[] = (productsRes?.data || []) as unknown as Product[];
 
             const today = new Date().toISOString().split('T')[0];
-            console.log('📅 Today:', today);
-
             const todayBatches = batches.filter((b: Batch) => {
                 const batchDate = new Date(b.batch_date).toISOString().split('T')[0];
                 return batchDate === today;
             }).length;
 
-            console.log('🏭 Today\'s Batches:', todayBatches);
-
             const pendingDeliveries = deliveries.filter((d: Delivery) => d.status === 'pending').length;
 
-            // ✅ DEBUG: Log inventory data
-            console.log('📋 Inventory from API:', inventory);
-            console.log('⚠️ Low Stock Items:', inventory.filter((i: InventoryItem) => i.low_stock === true));
-            console.log('⚠️ Low Stock Count:', inventory.filter((i: InventoryItem) => i.low_stock === true).length);
-
-            // ✅ Log each item's low_stock status
-            inventory.forEach((item: InventoryItem) => {
-                console.log(`📦 ${item.material_name}: low_stock = ${item.low_stock}, current_stock = ${item.current_stock}, minimum_stock = ${item.minimum_stock}`);
-            });
-
             const lowStock = inventory.filter((i: InventoryItem) => {
-                // Handle both number (1) and boolean (true)
+                // Handles both number (1) and boolean (true) representations from the backend
                 if (typeof i.low_stock === 'number') {
                     return i.low_stock === 1;
                 }
                 return i.low_stock === true;
             }).length;
-            console.log('⚠️ Low Stock Items (fixed):', inventory.filter((i: InventoryItem) => {
-                if (typeof i.low_stock === 'number') {
-                    return i.low_stock === 1;
-                }
-                return i.low_stock === true;
-            }));
-            console.log('⚠️ Low Stock Count (fixed):', lowStock);
 
             const totalRevenue = orders
                 .filter((o: Order) => o.payment_status === 'paid')
@@ -362,13 +344,11 @@ const Dashboard: React.FC = () => {
                     return sum + (isNaN(amount) ? 0 : amount);
                 }, 0);
 
-            const creditSummary = credit as CreditSummary;
-
             setMetrics({
                 todayBatches,
                 pendingDeliveries,
                 lowStock,
-                creditOutstanding: Number(creditSummary.total_outstanding || 0),
+                creditOutstanding: Number(credit.total_outstanding || 0),
                 totalOrders: orders.length,
                 totalCustomers: customers.length,
                 totalProducts: products.length,
@@ -379,25 +359,22 @@ const Dashboard: React.FC = () => {
             setRecentOrders(orders.slice(0, 5));
             setLowStockItems(inventory.filter((i: InventoryItem) => i.low_stock).slice(0, 5));
 
-            // Production Chart (Last 7 days batches)
+            // Production chart: batches produced over the last 7 days
             const last7Days = getLast7Days();
             const dailyBatches = last7Days.map((date: string) => ({
                 date,
                 count: batches.filter((b: Batch) => {
                     try {
                         const batchDate = new Date(b.batch_date);
-                        const formattedDate = batchDate.toISOString().split('T')[0];
-                        return formattedDate === date;
-                    } catch (e) {
+                        return batchDate.toISOString().split('T')[0] === date;
+                    } catch {
                         return false;
                     }
                 }).length
             }));
 
-            console.log('📊 Daily Batches:', dailyBatches);
-
             setChartData({
-                labels: dailyBatches.map((d) => d.date),
+                labels: dailyBatches.map((d) => formatDate(d.date)),
                 datasets: [
                     {
                         label: 'Batches Produced',
@@ -409,7 +386,7 @@ const Dashboard: React.FC = () => {
 
             generateRoleBasedCharts(batches, orders, deliveries, customers, products);
 
-            // Revenue chart - last 7 days
+            // Revenue chart: paid order revenue over the last 7 days
             const dailyRevenue = last7Days.map((date: string) => {
                 const dayOrders = orders.filter((o: Order) => {
                     const orderDate = new Date(o.order_date).toISOString().split('T')[0];
@@ -427,7 +404,7 @@ const Dashboard: React.FC = () => {
             });
 
             setRevenueChartData({
-                labels: dailyRevenue.map((d) => d.date),
+                labels: dailyRevenue.map((d) => formatDate(d.date)),
                 datasets: [
                     {
                         label: 'Daily Revenue (UGX)',
@@ -441,8 +418,9 @@ const Dashboard: React.FC = () => {
                 ]
             });
 
-        } catch (error) {
-            console.error('Error fetching dashboard data:', error);
+        } catch (err) {
+            console.error('Error fetching dashboard data:', err);
+            setError('Unable to load dashboard data right now. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -451,219 +429,273 @@ const Dashboard: React.FC = () => {
     return (
         <div className="dashboard">
             <div className="dashboard-header">
-                <h1>📊 Dashboard</h1>
-                <p>
-                    Welcome, {userName}! <span className="role-tag">{userRole}</span>
-                </p>
+                <div className="header-top">
+                    <h1>
+                        <i className="bi bi-speedometer2" aria-hidden="true"></i>
+                        Dashboard
+                    </h1>
+                    <span className="role-tag">
+                        <i className="bi bi-person-badge" aria-hidden="true"></i>
+                        {userRole}
+                    </span>
+                </div>
+                <p className="dashboard-welcome">Welcome back, {userName}.</p>
                 <p className="role-message">{getWelcomeMessage()}</p>
             </div>
 
-            <div className="metrics-grid">
-                <MetricCard
-                    title="Today's Batches"
-                    value={metrics.todayBatches}
-                    icon="🏭"
-                    color="primary"
-                />
-                <MetricCard
-                    title="Pending Deliveries"
-                    value={metrics.pendingDeliveries}
-                    icon="🚚"
-                    color="warning"
-                />
-                <MetricCard
-                    title="Low Stock Alerts"
-                    value={metrics.lowStock}
-                    icon="⚠️"
-                    color="danger"
-                />
-                <MetricCard
-                    title="Credit Outstanding"
-                    value={`UGX ${metrics.creditOutstanding.toLocaleString()}`}
-                    icon="💰"
-                    color="info"
-                />
-                {['admin', 'sales'].includes(userRole) && (
-                    <MetricCard
-                        title="Total Revenue"
-                        value={`UGX ${(metrics.totalRevenue || 0).toLocaleString()}`}
-                        icon="💳"
-                        color="success"
-                    />
-                )}
-                {['admin', 'supervisor'].includes(userRole) && (
-                    <MetricCard
-                        title="Total Orders"
-                        value={metrics.totalOrders}
-                        icon="📦"
-                        color="primary"
-                    />
-                )}
-            </div>
+            {loading && (
+                <div className="state-panel">
+                    <i className="bi bi-arrow-repeat spin" aria-hidden="true"></i>
+                    <p>Loading dashboard data...</p>
+                </div>
+            )}
 
-            <div className="dashboard-content">
-                {showProductionChart && chartData && (
-                    <div className="chart-section">
-                        <h3>📈 Production Activity (Last 7 Days)</h3>
-                        <Bar
-                            data={chartData}
-                            options={{
-                                responsive: true,
-                                plugins: {
-                                    legend: { display: false },
-                                },
-                                scales: {
-                                    y: {
-                                        beginAtZero: true,
-                                        ticks: { stepSize: 1 },
-                                    },
-                                },
-                            }}
+            {!loading && error && (
+                <div className="state-panel state-error" role="alert">
+                    <i className="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                    <p>{error}</p>
+                    <button className="btn-retry" onClick={fetchDashboardData}>
+                        <i className="bi bi-arrow-repeat" aria-hidden="true"></i>
+                        Retry
+                    </button>
+                </div>
+            )}
+
+            {!loading && !error && (
+                <>
+                    <div className="metrics-grid">
+                        <MetricCard
+                            title="Today's Batches"
+                            titleIcon="bi bi-factory"
+                            value={metrics.todayBatches}
+                            icon="bi bi-factory"
+                            color="primary"
                         />
-                    </div>
-                )}
-
-                {roleChartData && (
-                    <div className="chart-section role-chart">
-                        <h3>📊 {roleChartData.datasets[0]?.label || 'Role Overview'}</h3>
-                        <Doughnut
-                            data={roleChartData}
-                            options={{
-                                responsive: true,
-                                plugins: {
-                                    legend: {
-                                        position: 'bottom',
-                                    },
-                                },
-                            }}
+                        <MetricCard
+                            title="Pending Deliveries"
+                            titleIcon="bi bi-truck"
+                            value={metrics.pendingDeliveries}
+                            icon="bi bi-truck"
+                            color="warning"
                         />
-                    </div>
-                )}
-
-                {showRevenueChart && revenueChartData && (
-                    <div className="chart-section revenue-chart">
-                        <h3>💰 Revenue Trend (Last 7 Days)</h3>
-                        <Line
-                            data={revenueChartData}
-                            options={{
-                                responsive: true,
-                                plugins: {
-                                    legend: { display: false },
-                                },
-                                scales: {
-                                    y: {
-                                        beginAtZero: true,
-                                    },
-                                },
-                            }}
+                        <MetricCard
+                            title="Low Stock Alerts"
+                            titleIcon="bi bi-exclamation-triangle"
+                            value={metrics.lowStock}
+                            icon="bi bi-exclamation-triangle"
+                            color="danger"
                         />
-                    </div>
-                )}
-            </div>
-
-            <div className="dashboard-tables">
-                {['admin', 'supervisor', 'production'].includes(userRole) && (
-                    <div className="recent-section">
-                        <h3>🏭 Recent Batches</h3>
-                        {loading ? (
-                            <p>Loading...</p>
-                        ) : (
-                            <table className="recent-table">
-                                <thead>
-                                    <tr>
-                                        <th>Batch #</th>
-                                        <th>Date</th>
-                                        <th>Total Units</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {recentBatches.map((batch: Batch) => (
-                                        <tr key={batch.batch_id}>
-                                            <td>{batch.batch_number}</td>
-                                            <td>{batch.batch_date}</td>
-                                            <td>{batch.total_units || 0}</td>
-                                            <td>
-                                                <span className={`badge ${getStatusBadgeClass(batch.status)}`}>
-                                                    {batch.status}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                        <MetricCard
+                            title="Credit Outstanding"
+                            titleIcon="bi bi-cash-coin"
+                            value={formatCurrency(metrics.creditOutstanding)}
+                            icon="bi bi-cash-coin"
+                            color="info"
+                        />
+                        {['admin', 'sales'].includes(userRole) && (
+                            <MetricCard
+                                title="Total Revenue"
+                                titleIcon="bi bi-credit-card"
+                                value={formatCurrency(metrics.totalRevenue)}
+                                icon="bi bi-credit-card"
+                                color="success"
+                            />
+                        )}
+                        {['admin', 'supervisor'].includes(userRole) && (
+                            <MetricCard
+                                title="Total Orders"
+                                titleIcon="bi bi-box-seam"
+                                value={metrics.totalOrders}
+                                icon="bi bi-box-seam"
+                                color="primary"
+                            />
                         )}
                     </div>
-                )}
 
-                {['admin', 'sales'].includes(userRole) && (
-                    <div className="recent-section">
-                        <h3>🛒 Recent Orders</h3>
-                        {loading ? (
-                            <p>Loading...</p>
-                        ) : (
-                            <table className="recent-table">
-                                <thead>
-                                    <tr>
-                                        <th>Order #</th>
-                                        <th>Date</th>
-                                        <th>Amount (UGX)</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {recentOrders.map((order: Order) => (
-                                        <tr key={order.order_id}>
-                                            <td>#{order.order_id}</td>
-                                            <td>{order.order_date}</td>
-                                            <td>
-                                                {typeof order.total_amount === 'string'
-                                                    ? parseFloat(order.total_amount).toLocaleString()
-                                                    : (order.total_amount || 0).toLocaleString()}
-                                            </td>
-                                            <td>
-                                                <span className={`badge ${order.payment_status === 'paid' ? 'badge-success' : 'badge-warning'}`}>
-                                                    {order.payment_status}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                    <div className="dashboard-content">
+                        {showProductionChart && chartData && (
+                            <div className="chart-section">
+                                <h3>
+                                    <i className="bi bi-graph-up-arrow" aria-hidden="true"></i>
+                                    Production Activity (Last 7 Days)
+                                </h3>
+                                <Bar
+                                    data={chartData}
+                                    options={{
+                                        responsive: true,
+                                        plugins: {
+                                            legend: { display: false },
+                                        },
+                                        scales: {
+                                            y: {
+                                                beginAtZero: true,
+                                                ticks: { stepSize: 1 },
+                                            },
+                                        },
+                                    }}
+                                />
+                            </div>
+                        )}
+
+                        {roleChartData && (
+                            <div className="chart-section role-chart">
+                                <h3>
+                                    <i className="bi bi-pie-chart" aria-hidden="true"></i>
+                                    {roleChartData.datasets[0]?.label || 'Role Overview'}
+                                </h3>
+                                <Doughnut
+                                    data={roleChartData}
+                                    options={{
+                                        responsive: true,
+                                        plugins: {
+                                            legend: {
+                                                position: 'bottom',
+                                            },
+                                        },
+                                    }}
+                                />
+                            </div>
+                        )}
+
+                        {showRevenueChart && revenueChartData && (
+                            <div className="chart-section revenue-chart">
+                                <h3>
+                                    <i className="bi bi-graph-up-arrow" aria-hidden="true"></i>
+                                    Revenue Trend (Last 7 Days)
+                                </h3>
+                                <Line
+                                    data={revenueChartData}
+                                    options={{
+                                        responsive: true,
+                                        plugins: {
+                                            legend: { display: false },
+                                        },
+                                        scales: {
+                                            y: {
+                                                beginAtZero: true,
+                                            },
+                                        },
+                                    }}
+                                />
+                            </div>
                         )}
                     </div>
-                )}
 
-                {['admin', 'supervisor', 'production'].includes(userRole) && (
-                    <div className="recent-section">
-                        <h3>⚠️ Low Stock Alerts</h3>
-                        {loading ? (
-                            <p>Loading...</p>
-                        ) : lowStockItems.length === 0 ? (
-                            <p className="no-data">✅ All items are well stocked!</p>
-                        ) : (
-                            <table className="recent-table">
-                                <thead>
-                                    <tr>
-                                        <th>Material</th>
-                                        <th>Current Stock</th>
-                                        <th>Min Stock</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {lowStockItems.map((item: InventoryItem) => (
-                                        <tr key={item.material_id} className="low-stock-row">
-                                            <td>{item.material_name}</td>
-                                            <td>{item.current_stock}</td>
-                                            <td>{item.minimum_stock}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                    <div className="dashboard-tables">
+                        {['admin', 'supervisor', 'production'].includes(userRole) && (
+                            <div className="recent-section">
+                                <h3>
+                                    <i className="bi bi-factory" aria-hidden="true"></i>
+                                    Recent Batches
+                                </h3>
+                                {recentBatches.length === 0 ? (
+                                    <p className="no-data">No recent batches recorded.</p>
+                                ) : (
+                                    <table className="recent-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Batch #</th>
+                                                <th>Date</th>
+                                                <th>Total Units</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {recentBatches.map((batch: Batch) => (
+                                                <tr key={batch.batch_id}>
+                                                    <td>{batch.batch_number}</td>
+                                                    <td>{formatDate(batch.batch_date)}</td>
+                                                    <td>{batch.total_units || 0}</td>
+                                                    <td>
+                                                        <span className={`badge ${getStatusBadgeClass(batch.status)}`}>
+                                                            {batch.status}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
+                            </div>
+                        )}
+
+                        {['admin', 'sales'].includes(userRole) && (
+                            <div className="recent-section">
+                                <h3>
+                                    <i className="bi bi-box-seam" aria-hidden="true"></i>
+                                    Recent Orders
+                                </h3>
+                                {recentOrders.length === 0 ? (
+                                    <p className="no-data">No recent orders recorded.</p>
+                                ) : (
+                                    <table className="recent-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Order #</th>
+                                                <th>Date</th>
+                                                <th>Amount (UGX)</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {recentOrders.map((order: Order) => (
+                                                <tr key={order.order_id}>
+                                                    <td>#{order.order_id}</td>
+                                                    <td>{formatDate(order.order_date)}</td>
+                                                    <td>
+                                                        {typeof order.total_amount === 'string'
+                                                            ? parseFloat(order.total_amount).toLocaleString()
+                                                            : (order.total_amount || 0).toLocaleString()}
+                                                    </td>
+                                                    <td>
+                                                        <span className={`badge ${order.payment_status === 'paid' ? 'badge-success' : 'badge-warning'}`}>
+                                                            {order.payment_status}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
+                            </div>
+                        )}
+
+                        {['admin', 'supervisor', 'production'].includes(userRole) && (
+                            <div className="recent-section">
+                                <h3>
+                                    <i className="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                                    Low Stock Alerts
+                                </h3>
+                                {lowStockItems.length === 0 ? (
+                                    <p className="no-data no-data-positive">
+                                        <i className="bi bi-check-circle" aria-hidden="true"></i>
+                                        All items are well stocked.
+                                    </p>
+                                ) : (
+                                    <table className="recent-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Material</th>
+                                                <th>Current Stock</th>
+                                                <th>Min Stock</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {lowStockItems.map((item: InventoryItem) => (
+                                                <tr key={item.material_id} className="low-stock-row">
+                                                    <td>{item.material_name}</td>
+                                                    <td>{item.current_stock}</td>
+                                                    <td>{item.minimum_stock}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
+                            </div>
                         )}
                     </div>
-                )}
-            </div>
+                </>
+            )}
         </div>
     );
 };

@@ -1,40 +1,138 @@
+/* ============================================
+   EXPENDITURE FORM - Finance / Operations Record
+   Self-contained styling: does not depend on
+   other pages' CSS being loaded.
+   ============================================ */
+
 .expenditure-form {
-    padding: 20px;
+    padding: 24px;
+    max-width: 900px;
+    margin: 0 auto;
 }
 
-.page-header {
+/* ---------- Page Header ---------- */
+
+.expenditure-form .page-header {
     display: flex;
     justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.expenditure-form .header-text h1 {
+    display: flex;
     align-items: center;
-    margin-bottom: 25px;
-}
-
-.page-header h1 {
+    gap: 10px;
     color: var(--text-dark);
-    font-size: 1.8rem;
+    font-size: 1.7rem;
+    font-weight: 700;
+    margin: 0;
 }
 
-.btn-secondary {
-    background: #6c757d;
-    color: white;
+.expenditure-form .header-text h1 i {
+    color: var(--primary);
+    font-size: 1.4rem;
+}
+
+.page-subtitle {
+    color: var(--text-body);
+    font-size: 0.9rem;
+    margin: 4px 0 0;
+}
+
+/* ---------- Shared Button Styles (local to this page) ---------- */
+
+.expenditure-form .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     border: none;
-    padding: 10px 20px;
-    border-radius: 6px;
+    border-radius: 8px;
     font-weight: 600;
+    font-size: 0.9rem;
     cursor: pointer;
-    transition: background 0.3s;
+    transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+    padding: 10px 20px;
 }
 
-.btn-secondary:hover {
-    background: #5a6268;
+.expenditure-form .btn:focus-visible {
+    outline: 2px solid var(--primary-dark);
+    outline-offset: 2px;
 }
+
+.expenditure-form .btn-primary {
+    background: var(--primary);
+    color: #FFFFFF;
+}
+
+.expenditure-form .btn-primary:hover:not(:disabled) {
+    background: var(--primary-dark);
+}
+
+.expenditure-form .btn-secondary {
+    background: #EEF1F4;
+    color: var(--text-dark);
+}
+
+.expenditure-form .btn-secondary:hover:not(:disabled) {
+    background: #E2E6EA;
+}
+
+.expenditure-form .btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.spin {
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* ---------- Form Card ---------- */
 
 .form-container {
     background: white;
-    padding: 30px;
-    border-radius: 10px;
+    padding: 32px;
+    border-radius: 12px;
     box-shadow: var(--shadow);
 }
+
+/* Inline alerts used instead of alert() for validation, errors, and success */
+.form-alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 0.88rem;
+    margin-bottom: 20px;
+}
+
+.form-alert i {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.form-alert-error {
+    background: #FFF5F5;
+    color: #C53030;
+    border: 1px solid #FED7D7;
+}
+
+.form-alert-success {
+    background: #F0FFF4;
+    color: #276749;
+    border: 1px solid #C6F6D5;
+}
+
+/* ---------- Form Fields ---------- */
 
 .form-grid {
     display: grid;
@@ -45,22 +143,33 @@
 .form-group {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 6px;
 }
 
 .form-group label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     font-weight: 600;
     font-size: 0.85rem;
     color: var(--text-dark);
 }
 
+.form-group label i {
+    color: var(--primary);
+    font-size: 0.9rem;
+}
+
 .form-group input,
 .form-group select,
 .form-group textarea {
-    padding: 8px 12px;
+    padding: 10px 12px;
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: 8px;
     font-size: 0.9rem;
+    color: var(--text-dark);
+    background: #FBFCFD;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .form-group input:focus,
@@ -68,21 +177,84 @@
 .form-group textarea:focus {
     outline: none;
     border-color: var(--primary);
+    background: #FFFFFF;
+    box-shadow: 0 0 0 3px rgba(29, 158, 117, 0.12);
 }
 
 .full-width {
     grid-column: 1 / -1;
 }
 
-.submit-btn {
-    margin-top: 25px;
-    width: 100%;
-    padding: 12px;
-    font-size: 1rem;
+/* ---------- Currency Input ---------- */
+
+.currency-input {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #FBFCFD;
+    overflow: hidden;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+.currency-input:focus-within {
+    border-color: var(--primary);
+    background: #FFFFFF;
+    box-shadow: 0 0 0 3px rgba(29, 158, 117, 0.12);
+}
+
+.currency-prefix {
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    background: #EEF6F2;
+    color: var(--primary-dark);
+    font-weight: 700;
+    font-size: 0.82rem;
+    letter-spacing: 0.3px;
+}
+
+.currency-input input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 10px 12px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.currency-input input:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+/* ---------- Submit ---------- */
+
+.submit-btn {
+    margin-top: 26px;
+    width: 100%;
+    padding: 13px;
+    font-size: 0.98rem;
+}
+
+/* ---------- Responsive ---------- */
+
 @media (max-width: 768px) {
+    .expenditure-form {
+        padding: 16px;
+    }
+
+    .form-container {
+        padding: 22px;
+    }
+
     .form-grid {
         grid-template-columns: 1fr;
+    }
+
+    .expenditure-form .page-header {
+        flex-direction: column;
+        align-items: stretch;
     }
 }

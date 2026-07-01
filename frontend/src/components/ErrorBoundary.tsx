@@ -1,4 +1,5 @@
-import  { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, ErrorInfo, ReactNode } from 'react';
+import './ErrorBoundary.css';
 
 interface Props {
     children: ReactNode;
@@ -23,65 +24,51 @@ class ErrorBoundary extends Component<Props, State> {
         console.error('Uncaught error:', error, errorInfo);
     }
 
+    private handleReload = (): void => {
+        window.location.reload();
+    };
+
+    private handleGoToLogin = (): void => {
+        window.location.href = '/login';
+    };
+
     public render() {
         if (this.state.hasError) {
             return (
-                <div style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    minHeight: '100vh',
-                    flexDirection: 'column',
-                    padding: '20px',
-                    textAlign: 'center',
-                    fontFamily: 'Arial, sans-serif'
-                }}>
-                    <div style={{
-                        maxWidth: '500px',
-                        padding: '40px',
-                        background: 'white',
-                        borderRadius: '12px',
-                        boxShadow: '0 10px 40px rgba(0,0,0,0.1)'
-                    }}>
-                        <span style={{ fontSize: '3rem', display: 'block', marginBottom: '16px' }}>😅</span>
-                        <h2 style={{ color: '#1A1A1A', margin: '0 0 8px 0' }}>Oops! Something went wrong</h2>
-                        <p style={{ color: '#555', margin: '0 0 20px 0' }}>
-                            We're sorry, but something unexpected happened. Our team has been notified.
+                <div className="error-boundary-container">
+                    <div className="error-boundary-box">
+                        <div className="error-icon">
+                            <i className="bi bi-exclamation-triangle"></i>
+                        </div>
+                        <h1 className="error-title">Unexpected Error</h1>
+                        <p className="error-description">
+                            We apologize for the inconvenience. Something unexpected went wrong.
+                            Our team has been notified and is working on a fix.
                         </p>
-                        <p style={{ color: '#999', fontSize: '0.85rem' }}>
-                            Error: {this.state.error?.message || 'Unknown error'}
-                        </p>
-                        <button
-                            onClick={() => window.location.reload()}
-                            style={{
-                                background: '#1D9E75',
-                                color: 'white',
-                                border: 'none',
-                                padding: '10px 30px',
-                                borderRadius: '6px',
-                                fontSize: '1rem',
-                                cursor: 'pointer',
-                                marginTop: '16px'
-                            }}
-                        >
-                            🔄 Reload Page
-                        </button>
-                        <button
-                            onClick={() => window.location.href = '/login'}
-                            style={{
-                                background: 'transparent',
-                                color: '#1D9E75',
-                                border: '2px solid #1D9E75',
-                                padding: '10px 30px',
-                                borderRadius: '6px',
-                                fontSize: '1rem',
-                                cursor: 'pointer',
-                                marginTop: '12px',
-                                marginLeft: '10px'
-                            }}
-                        >
-                            🔐 Go to Login
-                        </button>
+                        {this.state.error && (
+                            <div className="error-details">
+                                <span className="error-details-label">Error Details</span>
+                                <code className="error-message">
+                                    {this.state.error.message || 'An unknown error occurred'}
+                                </code>
+                            </div>
+                        )}
+                        <div className="error-actions">
+                            <button 
+                                className="error-btn error-btn-primary"
+                                onClick={this.handleReload}
+                            >
+                                <i className="bi bi-arrow-clockwise"></i>
+                                Reload Page
+                            </button>
+                            <button 
+                                className="error-btn error-btn-secondary"
+                                onClick={this.handleGoToLogin}
+                            >
+                                <i className="bi bi-box-arrow-in-right"></i>
+                                Return to Login
+                            </button>
+                        </div>
                     </div>
                 </div>
             );
@@ -92,3 +79,4 @@ class ErrorBoundary extends Component<Props, State> {
 }
 
 export default ErrorBoundary;
+

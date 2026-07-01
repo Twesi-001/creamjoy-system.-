@@ -1,63 +1,127 @@
+/* ============================================
+   METRIC CARD - Reusable Dashboard Stat Card
+   ============================================ */
+
 .metric-card {
     background: white;
     padding: 20px;
-    border-radius: 10px;
+    border-radius: 12px;
     box-shadow: var(--shadow);
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 16px;
     border-left: 4px solid var(--primary);
-    transition: transform 0.2s;
+    border-top: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .metric-card:hover {
     transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
 }
+
+/* ---------- Color Variants ---------- */
 
 .metric-primary {
     border-left-color: var(--primary);
+}
+
+.metric-primary .metric-icon {
+    background: rgba(29, 158, 117, 0.12);
+    color: var(--primary-dark);
 }
 
 .metric-warning {
     border-left-color: var(--warning);
 }
 
+.metric-warning .metric-icon {
+    background: rgba(255, 193, 7, 0.15);
+    color: #B7791F;
+}
+
 .metric-danger {
     border-left-color: var(--danger);
+}
+
+.metric-danger .metric-icon {
+    background: rgba(220, 53, 69, 0.12);
+    color: var(--danger);
 }
 
 .metric-info {
     border-left-color: var(--info);
 }
 
+.metric-info .metric-icon {
+    background: rgba(23, 162, 184, 0.12);
+    color: #17A2B8;
+}
+
 .metric-success {
     border-left-color: var(--success);
 }
 
+.metric-success .metric-icon {
+    background: rgba(40, 167, 69, 0.12);
+    color: #28A745;
+}
+
+.metric-secondary {
+    border-left-color: #6C757D;
+}
+
+.metric-secondary .metric-icon {
+    background: rgba(108, 117, 125, 0.12);
+    color: #6C757D;
+}
+
+/* ---------- Icon Container ---------- */
+
 .metric-icon {
-    font-size: 2rem;
-    width: 50px;
-    height: 50px;
+    font-size: 1.35rem;
+    width: 52px;
+    height: 52px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--primary-light);
-    border-radius: 10px;
+    border-radius: 12px;
+    flex-shrink: 0;
 }
 
-.metric-info {
+/* ---------- Text Content ---------- */
+
+.metric-body {
     flex: 1;
     display: flex;
     flex-direction: column;
+    gap: 2px;
+    min-width: 0;
 }
 
 .metric-value {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     font-weight: 700;
     color: var(--text-dark);
+    overflow-wrap: break-word;
 }
 
 .metric-title {
-    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
     color: var(--text-body);
+    font-weight: 500;
+}
+
+.metric-title-icon {
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.metric-title-text {
+    line-height: 1.2;
 }

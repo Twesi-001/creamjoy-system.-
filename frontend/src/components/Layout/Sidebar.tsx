@@ -2,13 +2,74 @@ import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import './Sidebar.css';
 
+type UserRole = 'supervisor' | 'production' | 'delivery' | 'sales' | 'admin' | 'maintenance';
+
+interface MenuItem {
+    path: string;
+    icon: string;
+    label: string;
+    roles: UserRole[];
+}
+
 interface SidebarProps {
     isOpen?: boolean;
     onClose?: () => void;
 }
 
+const ROLE_MENU_ITEMS: Record<UserRole, MenuItem[]> = {
+    admin: [
+        { path: '/', icon: 'bi-speedometer2', label: 'Dashboard', roles: ['admin'] },
+        { path: '/batches', icon: 'bi-factory', label: 'Batches', roles: ['admin'] },
+        { path: '/products', icon: 'bi-box-seam', label: 'Products', roles: ['admin'] },
+        { path: '/orders', icon: 'bi-cart-check', label: 'Orders', roles: ['admin'] },
+        { path: '/deliveries', icon: 'bi-truck', label: 'Deliveries', roles: ['admin'] },
+        { path: '/inventory', icon: 'bi-boxes', label: 'Inventory', roles: ['admin'] },
+        { path: '/raw-materials', icon: 'bi-archive', label: 'Raw Materials', roles: ['admin'] },
+        { path: '/suppliers', icon: 'bi-building', label: 'Suppliers', roles: ['admin'] },
+        { path: '/customers', icon: 'bi-people', label: 'Customers', roles: ['admin'] },
+        { path: '/credit', icon: 'bi-wallet2', label: 'Credit Accounts', roles: ['admin'] },
+        { path: '/admin', icon: 'bi-gear', label: 'Admin Panel', roles: ['admin'] },
+        { path: '/expenditures/new', icon: 'bi-receipt', label: 'Expenditure', roles: ['admin'] },
+    ],
+    supervisor: [
+        { path: '/', icon: 'bi-speedometer2', label: 'Dashboard', roles: ['supervisor'] },
+        { path: '/batches', icon: 'bi-factory', label: 'Batches', roles: ['supervisor'] },
+        { path: '/products', icon: 'bi-box-seam', label: 'Products', roles: ['supervisor'] },
+        { path: '/orders', icon: 'bi-cart-check', label: 'Orders', roles: ['supervisor'] },
+        { path: '/deliveries', icon: 'bi-truck', label: 'Deliveries', roles: ['supervisor'] },
+        { path: '/inventory', icon: 'bi-boxes', label: 'Inventory', roles: ['supervisor'] },
+        { path: '/raw-materials', icon: 'bi-archive', label: 'Raw Materials', roles: ['supervisor'] },
+        { path: '/suppliers', icon: 'bi-building', label: 'Suppliers', roles: ['supervisor'] },
+        { path: '/customers', icon: 'bi-people', label: 'Customers', roles: ['supervisor'] },
+        { path: '/credit', icon: 'bi-wallet2', label: 'Credit Accounts', roles: ['supervisor'] },
+        { path: '/expenditures/new', icon: 'bi-receipt', label: 'Expenditure', roles: ['supervisor'] },
+    ],
+    production: [
+        { path: '/', icon: 'bi-speedometer2', label: 'Dashboard', roles: ['production'] },
+        { path: '/batches', icon: 'bi-factory', label: 'Batches', roles: ['production'] },
+        { path: '/products', icon: 'bi-box-seam', label: 'Products', roles: ['production'] },
+        { path: '/inventory', icon: 'bi-boxes', label: 'Inventory', roles: ['production'] },
+        { path: '/raw-materials', icon: 'bi-archive', label: 'Raw Materials', roles: ['production'] },
+        { path: '/suppliers', icon: 'bi-building', label: 'Suppliers', roles: ['production'] },
+    ],
+    delivery: [
+        { path: '/', icon: 'bi-speedometer2', label: 'Dashboard', roles: ['delivery'] },
+        { path: '/orders', icon: 'bi-cart-check', label: 'Orders', roles: ['delivery'] },
+        { path: '/deliveries', icon: 'bi-truck', label: 'Deliveries', roles: ['delivery'] },
+    ],
+    sales: [
+        { path: '/', icon: 'bi-speedometer2', label: 'Dashboard', roles: ['sales'] },
+        { path: '/orders', icon: 'bi-cart-check', label: 'Orders', roles: ['sales'] },
+        { path: '/customers', icon: 'bi-people', label: 'Customers', roles: ['sales'] },
+        { path: '/credit', icon: 'bi-wallet2', label: 'Credit Accounts', roles: ['sales'] },
+    ],
+    maintenance: [
+        { path: '/', icon: 'bi-speedometer2', label: 'Dashboard', roles: ['maintenance'] },
+    ],
+};
+
 const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
-    const [role, setRole] = useState<string>('delivery');
+    const [role, setRole] = useState<UserRole>('delivery');
     const [userName, setUserName] = useState<string>('User');
     const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth <= 768);
 
@@ -24,7 +85,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
             if (userStr) {
                 try {
                     const user = JSON.parse(userStr);
-                    setRole(user.role || 'delivery');
+                    setRole((user.role as UserRole) || 'delivery');
                     setUserName(user.name || 'User');
                 } catch (e) {
                     console.error('Error parsing user:', e);
@@ -43,26 +104,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
         };
     }, []);
 
-    const allMenuItems = [
-        { path: '/', icon: '📊', label: 'Dashboard', roles: ['supervisor', 'production', 'delivery', 'sales'] },
-        { path: '/batches', icon: '🏭', label: 'Batches', roles: ['supervisor', 'production'] },
-        { path: '/products', icon: '📦', label: 'Products', roles: ['supervisor', 'production'] },
-        { path: '/orders', icon: '🛒', label: 'Orders', roles: ['supervisor', 'delivery', 'sales'] },
-        { path: '/deliveries', icon: '🚚', label: 'Deliveries', roles: ['supervisor', 'delivery'] },
-        { path: '/inventory', icon: '📋', label: 'Inventory', roles: ['supervisor', 'production'] },
-        { path: '/raw-materials', icon: '📦', label: 'Raw Materials', roles: ['supervisor', 'production'] },
-        { path: '/suppliers', icon: '🏢', label: 'Suppliers', roles: ['supervisor', 'production'] },
-        { path: '/customers', icon: '👤', label: 'Customers', roles: ['supervisor', 'sales'] },
-        { path: '/credit', icon: '💰', label: 'Credit Accounts', roles: ['supervisor', 'sales'] },
-        { path: '/admin', icon: '⚙️', label: 'Admin Panel', roles: ['admin'] },
-        { path: '/expenditures/new', icon: '💳', label: 'Expenditure', roles: ['supervisor'] },
-    ];
+    const menuItems = ROLE_MENU_ITEMS[role] || [];
 
-    const menuItems = allMenuItems.filter(item => 
-        item.roles.includes(role)
-    );
-
-    // Handle click on mobile to close sidebar
     const handleLinkClick = () => {
         if (isMobile && onClose) {
             onClose();
@@ -71,16 +114,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
 
     return (
         <>
-            {/* ✅ Mobile overlay */}
             {isMobile && isOpen && (
-                <div className="sidebar-overlay active" onClick={onClose} />
+                <div className="sidebar-overlay active" onClick={onClose} aria-hidden="true" />
             )}
-            <nav className={`sidebar ${isOpen ? 'open' : ''}`}>
+            <nav id="app-sidebar" className={`sidebar ${isOpen ? 'open' : ''}`} aria-label="Main navigation">
+            
                 <div className="sidebar-user">
-                    <span className="user-avatar">👤</span>
-                    <div className="user-info">
-                        <span className="user-name">{userName}</span>
-                        <span className={`user-role role-${role}`}>{role}</span>
+                    <i className="bi bi-person-circle sidebar-user-avatar" aria-hidden="true"></i>
+                    <div className="sidebar-user-info">
+                        <span className="sidebar-user-name">{userName}</span>
+                        <span className={`sidebar-user-role role-${role}`}>{role}</span>
                     </div>
                 </div>
 
@@ -94,7 +137,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
                                 }
                                 onClick={handleLinkClick}
                             >
-                                <span className="link-icon">{item.icon}</span>
+                                <span className="link-icon">
+                                    <i className={`bi ${item.icon}`} aria-hidden="true"></i>
+                                </span>
                                 <span className="link-label">{item.label}</span>
                             </NavLink>
                         </li>
@@ -102,7 +147,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
                 </ul>
 
                 <div className="sidebar-footer">
-                    <span className="footer-role">👤 {role}</span>
+                    <span className="footer-role">
+                        <i className="bi bi-person-circle" aria-hidden="true"></i>
+                        {role}
+                    </span>
                 </div>
             </nav>
         </>
@@ -110,3 +158,5 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
 };
 
 export default Sidebar;
+
+

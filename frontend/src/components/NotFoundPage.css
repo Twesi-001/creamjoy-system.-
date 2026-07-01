@@ -3,59 +3,188 @@
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background: linear-gradient(135deg, #0f2b1f 0%, #1D9E75 50%, #15845D 100%);
+    background: linear-gradient(135deg, #0a1f15 0%, #1d9e75 50%, #15845d 100%);
     padding: 20px;
+    margin: 0;
 }
 
 .not-found-box {
     background: white;
-    padding: 50px 40px;
+    padding: 48px 40px;
     border-radius: 16px;
     text-align: center;
-    max-width: 450px;
+    max-width: 480px;
     width: 100%;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: fadeInUp 0.4s ease;
 }
 
-.not-found-box h1 {
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.not-found-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 16px auto;
+    background: #e8f5f0;
+    border-radius: 50%;
+    color: #1d9e75;
+    font-size: 2.5rem;
+}
+
+.not-found-code {
     font-size: 5rem;
     margin: 0;
-    color: var(--primary);
+    color: #1d9e75;
     font-weight: 700;
+    line-height: 1;
+    letter-spacing: -2px;
 }
 
-.not-found-box h2 {
-    font-size: 1.5rem;
-    color: var(--text-dark);
-    margin: 10px 0;
+.not-found-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin: 8px 0 12px 0;
+    letter-spacing: -0.5px;
 }
 
-.not-found-box p {
-    color: var(--text-body);
-    margin-bottom: 25px;
+.not-found-description {
+    color: #4a4a6a;
+    font-size: 1rem;
+    line-height: 1.6;
+    margin: 0 0 28px 0;
+}
+
+.not-found-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .not-found-btn {
-    display: inline-block;
-    padding: 10px 24px;
-    background: var(--primary);
-    color: white;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 28px;
     border: none;
-    border-radius: 6px;
-    text-decoration: none;
+    border-radius: 8px;
     font-weight: 600;
-    margin: 5px;
-    transition: background 0.3s;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    text-decoration: none;
+    min-width: 160px;
+    justify-content: center;
 }
 
-.not-found-btn:hover {
-    background: var(--primary-dark);
+.not-found-btn i {
+    font-size: 1.1rem;
 }
 
-.not-found-btn.secondary {
-    background: #6c757d;
+.not-found-btn-primary {
+    background: linear-gradient(135deg, #1d9e75 0%, #16835f 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(29, 158, 117, 0.3);
 }
 
-.not-found-btn.secondary:hover {
-    background: #5a6268;
+.not-found-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(29, 158, 117, 0.4);
+    color: white;
 }
+
+.not-found-btn-primary:focus-visible {
+    outline: 3px solid rgba(29, 158, 117, 0.5);
+    outline-offset: 2px;
+}
+
+.not-found-btn-secondary {
+    background: #f1f3f5;
+    color: #1a1a2e;
+    border: 1px solid #e2e8f0;
+}
+
+.not-found-btn-secondary:hover {
+    background: #e8eaed;
+    border-color: #c8ced6;
+    transform: translateY(-2px);
+    color: #1a1a2e;
+}
+
+.not-found-btn-secondary:focus-visible {
+    outline: 3px solid rgba(74, 74, 106, 0.3);
+    outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+    .not-found-box {
+        padding: 32px 24px;
+    }
+
+    .not-found-icon {
+        width: 60px;
+        height: 60px;
+        font-size: 2rem;
+    }
+
+    .not-found-code {
+        font-size: 4rem;
+    }
+
+    .not-found-title {
+        font-size: 1.4rem;
+    }
+
+    .not-found-description {
+        font-size: 0.95rem;
+    }
+
+    .not-found-actions {
+        flex-direction: column;
+    }
+
+    .not-found-btn {
+        width: 100%;
+        min-width: unset;
+        padding: 12px 24px;
+    }
+}
+
+@media (max-width: 480px) {
+    .not-found-box {
+        padding: 24px 16px;
+    }
+
+    .not-found-icon {
+        width: 52px;
+        height: 52px;
+        font-size: 1.6rem;
+    }
+
+    .not-found-code {
+        font-size: 3.2rem;
+    }
+
+    .not-found-title {
+        font-size: 1.2rem;
+    }
+
+    .not-found-description {
+        font-size: 0.9rem;
+        margin-bottom: 20px;
+    }
+}
+
