@@ -18,7 +18,7 @@ import {
     BatchAPI,
     OrderAPI,
     DeliveryAPI,
-    InventoryAPI,
+    RawMaterialAPI,
     CreditAPI,
     CustomerAPI,
     ProductAPI
@@ -72,16 +72,6 @@ interface Delivery {
     [key: string]: unknown;
 }
 
-// Inventory types
-interface InventoryItem {
-    inventory_id: number;
-    product_id: number;
-    quantity: number;
-    low_stock: boolean;
-    reorder_level: number;
-    [key: string]: unknown;
-}
-
 // Credit types
 interface CreditSummary {
     total_outstanding: number;
@@ -107,9 +97,11 @@ interface Product {
 }
 
 interface LowStockItem {
+    material_id: number;
     product_name: string;
     quantity: number;
     reorder_level: number;
+    supplier_name?: string;
 }
 
 // Metric data interface
@@ -257,7 +249,7 @@ const Dashboard: React.FC = () => {
                 batchesRes,
                 ordersRes,
                 deliveriesRes,
-                inventoryRes,
+                lowStockRes,
                 creditRes,
                 customersRes,
                 productsRes
@@ -265,7 +257,7 @@ const Dashboard: React.FC = () => {
                 BatchAPI.getAll(),
                 OrderAPI.getAll(),
                 DeliveryAPI.getAll(),
-                InventoryAPI.getAll(),
+                RawMaterialAPI.getLowStock(),
                 CreditAPI.getSummary(),
                 CustomerAPI.getAll(),
                 ProductAPI.getAll()
@@ -274,7 +266,7 @@ const Dashboard: React.FC = () => {
             const batches = (batchesRes?.data || []) as Batch[];
             const orders = (ordersRes?.data || []) as unknown as Order[];
             const deliveries = (deliveriesRes?.data || []) as unknown as Delivery[];
-            const inventory = (inventoryRes?.data || []) as InventoryItem[];
+            const lowStockMaterials = (lowStockRes?.data || []) as Array<Record<string, unknown>>;
             const credit = (creditRes?.data || {}) as unknown as CreditSummary;
             const customers = (customersRes?.data || []) as Customer[];
             const products = (productsRes?.data || []) as unknown as Product[];
@@ -291,11 +283,7 @@ const Dashboard: React.FC = () => {
                 (delivery: Delivery) => delivery.status === 'pending'
             ).length;
 
-            const lowStockRecords = inventory.filter(
-                (item: InventoryItem) => item.low_stock === true || item.quantity <= item.reorder_level
-            );
-
-            const lowStock = lowStockRecords.length;
+            const lowStock = lowStockMaterials.length;
 
             const totalOrders = orders.length;
             const totalCustomers = customers.length;
@@ -319,13 +307,17 @@ const Dashboard: React.FC = () => {
             // Set recent data
             setRecentBatches(batches.slice(0, 5));
             setLowStockItems(
-                lowStockRecords.slice(0, 6).map((item: InventoryItem) => ({
+                lowStockMaterials.map((item) => ({
+                    material_id: toNumber(item.material_id),
                     product_name:
-                        (item as { product_name?: string; name?: string }).product_name ||
-                        (item as { product_name?: string; name?: string }).name ||
-                        `Product #${item.product_id}`,
-                    quantity: item.quantity,
-                    reorder_level: item.reorder_level
+                        typeof item.material_name === 'string' && item.material_name
+                            ? item.material_name
+                            : typeof item.product_name === 'string' && item.product_name
+                                ? item.product_name
+                                : `Material #${toNumber(item.material_id)}`,
+                    quantity: toNumber(item.current_stock),
+                    reorder_level: toNumber(item.minimum_stock),
+                    supplier_name: typeof item.supplier_name === 'string' ? item.supplier_name : undefined
                 }))
             );
 
