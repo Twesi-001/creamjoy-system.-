@@ -42,29 +42,52 @@ def get_raw_material(material_id):
 @api_bp.route('/raw-materials', methods=['POST'])
 @token_required
 def create_raw_material():
-    data = request.get_json()
-    
-    material_name = data.get('material_name')
-    unit = data.get('unit')
-    cost_per_unit_ugx = data.get('cost_per_unit_ugx', 0)
-    current_stock = data.get('current_stock', 0)
-    minimum_stock = data.get('minimum_stock', 0)
-    supplier_id = data.get('supplier_id') or None
-    last_restocked = data.get('last_restocked')
-    
-    if not material_name or not unit:
-        return jsonify({'error': 'Material name and unit are required'}), 400
-    
-    material_id = execute_insert("""
-        INSERT INTO raw_materials 
-        (material_name, unit, cost_per_unit_ugx, current_stock, minimum_stock, supplier_id, last_restocked)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """, (material_name, unit, cost_per_unit_ugx, current_stock, minimum_stock, supplier_id, last_restocked))
-    
-    return jsonify({
-        'message': 'Raw material created successfully',
-        'material_id': material_id
-    }), 201
+    try:
+        data = request.get_json() or {}
+
+        material_name = (data.get('material_name') or '').strip()
+        unit = (data.get('unit') or '').strip()
+        cost_per_unit_ugx = float(data.get('cost_per_unit_ugx') or 0)
+        current_stock = float(data.get('current_stock') or 0)
+        minimum_stock = float(data.get('minimum_stock') or 0)
+        supplier_id = data.get('supplier_id') or None
+        last_restocked = data.get('last_restocked') or None
+
+        if not material_name or not unit:
+            return jsonify({'error': 'Material name and unit are required'}), 400
+
+        material_id = execute_insert("""
+            INSERT INTO raw_materials 
+            (material_name, unit, cost_per_unit_ugx, current_stock, minimum_stock, supplier_id, last_restocked)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (material_name, unit, cost_per_unit_ugx, current_stock, minimum_stock, supplier_id, last_restocked))
+
+        created_material = execute_query("""
+            SELECT 
+                rm.material_id,
+                rm.material_name,
+                rm.unit,
+                rm.cost_per_unit_ugx,
+                rm.current_stock,
+                rm.minimum_stock,
+                rm.last_restocked,
+                rm.supplier_id,
+                s.supplier_name
+            FROM raw_materials rm
+            LEFT JOIN suppliers s ON rm.supplier_id = s.supplier_id
+            WHERE rm.material_id = %s
+        """, (material_id,))
+
+        if not created_material:
+            return jsonify({'error': 'Raw material was not saved to the database'}), 500
+
+        return jsonify({
+            'message': 'Raw material created successfully',
+            'material_id': material_id,
+            'material': created_material[0]
+        }), 201
+    except Exception as exc:
+        return jsonify({'error': str(exc)}), 500
 
 # ============ UPDATE RAW MATERIAL ============
 @api_bp.route('/raw-materials/<int:material_id>', methods=['PUT'])

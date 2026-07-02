@@ -78,18 +78,30 @@ def create_product():
             INSERT INTO products (flavour_id, size_id, unit_price_ugx, flavour, size)
             VALUES (%s, %s, %s, %s, %s)
         """, (flavour_id, size_id, unit_price, flavour_name, size_name))
-        
+
+        created_product = execute_query("""
+            SELECT 
+                p.product_id,
+                p.flavour_id,
+                p.size_id,
+                p.unit_price_ugx as unit_price,
+                p.flavour,
+                p.size,
+                f.flavour_name,
+                s.size_name
+            FROM products p
+            LEFT JOIN flavours f ON p.flavour_id = f.flavour_id
+            LEFT JOIN pack_sizes s ON p.size_id = s.size_id
+            WHERE p.product_id = %s
+        """, (product_id,))
+
+        if not created_product:
+            return jsonify({'error': 'Product was not saved to the database'}), 500
+
         return jsonify({
             'message': 'Product created successfully',
             'product_id': product_id,
-            'product': {
-                'product_id': product_id,
-                'flavour_id': flavour_id,
-                'size_id': size_id,
-                'unit_price': unit_price,
-                'flavour_name': flavour_name,
-                'size_name': size_name
-            }
+            'product': created_product[0]
         }), 201
         
     except Exception as e:

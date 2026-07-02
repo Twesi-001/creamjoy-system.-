@@ -41,6 +41,19 @@ const InventoryList: React.FC = () => {
     const [showForm, setShowForm] = useState(false);
     const [formData, setFormData] = useState<FormData>(initialFormData);
 
+    useEffect(() => {
+        if (!showForm) {
+            return;
+        }
+
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+
+        return () => {
+            document.body.style.overflow = previousOverflow;
+        };
+    }, [showForm]);
+
     const fetchInventory = useCallback(async () => {
         setLoading(true);
         setError('');
@@ -56,7 +69,11 @@ const InventoryList: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        void fetchInventory();
+        const loadInventory = window.setTimeout(() => {
+            void fetchInventory();
+        }, 0);
+
+        return () => window.clearTimeout(loadInventory);
     }, [fetchInventory]);
 
     const summary = useMemo(() => ({
@@ -140,47 +157,59 @@ const InventoryList: React.FC = () => {
             )}
 
             {showForm && (
-                <div className="form-card">
-                    <div className="form-card-header">
-                        <h2>Add Inventory Item</h2>
-                        <p>This creates a new raw material record that appears in inventory.</p>
+                <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="inventory-modal-title">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <div>
+                                <h2 id="inventory-modal-title">Add Inventory Item</h2>
+                                <p className="modal-subtext">This creates a new raw material record that appears in inventory.</p>
+                            </div>
+                            <button
+                                type="button"
+                                className="btn-icon-close"
+                                onClick={() => setShowForm(false)}
+                                aria-label="Close dialog"
+                            >
+                                <i className="bi bi-x-lg" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <form className="inventory-form" onSubmit={handleSubmit}>
+                            <div className="form-grid">
+                                <div className="form-group">
+                                    <label htmlFor="material_name">Material Name</label>
+                                    <input id="material_name" name="material_name" value={formData.material_name} onChange={handleInputChange} placeholder="e.g. Milk powder" required />
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="unit">Unit</label>
+                                    <input id="unit" name="unit" value={formData.unit} onChange={handleInputChange} placeholder="kg, L, pieces" required />
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="cost_per_unit_ugx">Cost per Unit (UGX)</label>
+                                    <input id="cost_per_unit_ugx" name="cost_per_unit_ugx" type="number" min="0" value={formData.cost_per_unit_ugx} onChange={handleInputChange} required />
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="current_stock">Current Stock</label>
+                                    <input id="current_stock" name="current_stock" type="number" min="0" value={formData.current_stock} onChange={handleInputChange} required />
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="minimum_stock">Minimum Stock</label>
+                                    <input id="minimum_stock" name="minimum_stock" type="number" min="0" value={formData.minimum_stock} onChange={handleInputChange} required />
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="last_restocked">Last Restocked</label>
+                                    <input id="last_restocked" name="last_restocked" type="date" value={formData.last_restocked} onChange={handleInputChange} />
+                                </div>
+                            </div>
+                            <div className="form-actions">
+                                <button type="button" className="btn-secondary" onClick={() => setShowForm(false)}>
+                                    Cancel
+                                </button>
+                                <button type="submit" className="btn-primary" disabled={saving}>
+                                    {saving ? 'Saving...' : 'Save Inventory Item'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                    <form className="inventory-form" onSubmit={handleSubmit}>
-                        <div className="form-grid">
-                            <div className="form-group">
-                                <label htmlFor="material_name">Material Name</label>
-                                <input id="material_name" name="material_name" value={formData.material_name} onChange={handleInputChange} placeholder="e.g. Milk powder" required />
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor="unit">Unit</label>
-                                <input id="unit" name="unit" value={formData.unit} onChange={handleInputChange} placeholder="kg, L, pieces" required />
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor="cost_per_unit_ugx">Cost per Unit (UGX)</label>
-                                <input id="cost_per_unit_ugx" name="cost_per_unit_ugx" type="number" min="0" value={formData.cost_per_unit_ugx} onChange={handleInputChange} required />
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor="current_stock">Current Stock</label>
-                                <input id="current_stock" name="current_stock" type="number" min="0" value={formData.current_stock} onChange={handleInputChange} required />
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor="minimum_stock">Minimum Stock</label>
-                                <input id="minimum_stock" name="minimum_stock" type="number" min="0" value={formData.minimum_stock} onChange={handleInputChange} required />
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor="last_restocked">Last Restocked</label>
-                                <input id="last_restocked" name="last_restocked" type="date" value={formData.last_restocked} onChange={handleInputChange} />
-                            </div>
-                        </div>
-                        <div className="form-actions">
-                            <button type="button" className="btn-secondary" onClick={() => setShowForm(false)}>
-                                Cancel
-                            </button>
-                            <button type="submit" className="btn-primary" disabled={saving}>
-                                {saving ? 'Saving...' : 'Save Inventory Item'}
-                            </button>
-                        </div>
-                    </form>
                 </div>
             )}
 
